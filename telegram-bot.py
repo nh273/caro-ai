@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # This module requires python-telegram-bot
+import torch
 import os
 import sys
 import glob
@@ -24,12 +25,11 @@ except ImportError:
     print("You need python-telegram-bot package installed to start the bot")
     sys.exit()
 
-import torch
 
 # Configuration file with the following contents
 # [telegram]
 # api=API_KEY
-CONFIG_DEFAULT = "~/.config/rl_ch18_bot.ini"
+CONFIG_DEFAULT = "./.config/bot.ini"
 
 log = logging.getLogger("telegram")
 
@@ -40,8 +40,10 @@ class Session:
 
     def __init__(self, model_file, player_moves_first, player_id):
         self.model_file = model_file
-        self.model = model.Net(input_shape=model.OBS_SHAPE, actions_n=game.GAME_COLS)
-        self.model.load_state_dict(torch.load(model_file, map_location=lambda storage, loc: storage))
+        self.model = model.Net(
+            input_shape=model.OBS_SHAPE, actions_n=game.GAME_COLS)
+        self.model.load_state_dict(torch.load(
+            model_file, map_location=lambda storage, loc: storage))
         self.state = game.INITIAL_STATE
         self.value = None
         self.player_moves_first = player_moves_first
@@ -55,7 +57,8 @@ class Session:
         return won
 
     def move_bot(self):
-        self.mcts_store.search_batch(MCTS_SEARCHES, MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
+        self.mcts_store.search_batch(
+            MCTS_SEARCHES, MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
         probs, values = self.mcts_store.get_policy_value(self.state, tau=0)
         action = np.random.choice(game.GAME_COLS, p=probs)
         self.value = values[action]
@@ -97,7 +100,7 @@ class PlayerBot:
 
     def _read_leaderboard(self, log_file):
         if not os.path.exists(log_file):
-            return 
+            return
         with open(log_file, 'rt', encoding='utf-8') as fd:
             for l in fd:
                 data = json.loads(l)
@@ -136,7 +139,7 @@ class PlayerBot:
     def command_help(self, bot, update):
         bot.send_message(chat_id=update.message.chat_id, parse_mode="HTML", disable_web_page_preview=True,
                          text="""
-This a <a href="https://en.wikipedia.org/wiki/Connect_Four">4-in-a-row</a> game bot trained with AlphaGo Zero method for the <a href="https://www.packtpub.com/big-data-and-business-intelligence/practical-deep-reinforcement-learning">Practical Deep Reinforcement Learning</a> book. 
+This a <a href="https://en.wikipedia.org/wiki/Connect_Four">4-in-a-row</a> game bot trained with AlphaGo Zero method for the <a href="https://www.packtpub.com/big-data-and-business-intelligence/practical-deep-reinforcement-learning">Practical Deep Reinforcement Learning</a> book.
 
 <b>Welcome!</b>
 
@@ -148,7 +151,6 @@ This bot understands the following commands:
 During the game, your moves are numbers of columns to drop the disk.
 """)
 
-
     def command_list(self, bot, update):
         if len(self.models) == 0:
             reply = ["There are no models currently available, sorry!"]
@@ -157,34 +159,42 @@ During the game, your moves are numbers of columns to drop the disk.
             for idx, name in sorted(self.models.items()):
                 reply.append("<b>%d</b>: %s" % (idx, os.path.basename(name)))
 
-        bot.send_message(chat_id=update.message.chat_id, text="\n".join(reply), parse_mode="HTML")
+        bot.send_message(chat_id=update.message.chat_id,
+                         text="\n".join(reply), parse_mode="HTML")
 
     def command_play(self, bot, update, args):
         chat_id = update.message.chat_id
-        player_id = "%s:%s" % (update.message.from_user.username, update.message.from_user.id)
+        player_id = "%s:%s" % (
+            update.message.from_user.username, update.message.from_user.id)
         try:
             model_id = int(args[0])
         except ValueError:
-            bot.send_message(chat_id=chat_id, text="Wrong argumants! Use '/play <MODEL_ID>, to start the game")
+            bot.send_message(
+                chat_id=chat_id, text="Wrong argumants! Use '/play <MODEL_ID>, to start the game")
             return
 
         if model_id not in self.models:
-            bot.send_message(chat_id=chat_id, text="There is no such model, use /list command to get list of IDs")
+            bot.send_message(
+                chat_id=chat_id, text="There is no such model, use /list command to get list of IDs")
             return
 
         if chat_id in self.sessions:
-            bot.send_message(chat_id=chat_id, text="You already have the game in progress, it will be discarded")
+            bot.send_message(
+                chat_id=chat_id, text="You already have the game in progress, it will be discarded")
             del self.sessions[chat_id]
 
         player_moves = random.choice([False, True])
         session = Session(self.models[model_id], player_moves, player_id)
         self.sessions[chat_id] = session
         if player_moves:
-            bot.send_message(chat_id=chat_id, text="Your move is first (you're playing with O), please give the column to put your checker - single number from 0 to 6")
+            bot.send_message(
+                chat_id=chat_id, text="Your move is first (you're playing with O), please give the column to put your checker - single number from 0 to 6")
         else:
-            bot.send_message(chat_id=chat_id, text="The first move is mine (I'm playing with X), moving...")
+            bot.send_message(
+                chat_id=chat_id, text="The first move is mine (I'm playing with X), moving...")
             session.move_bot()
-        bot.send_message(chat_id=chat_id, text=session.render(), parse_mode="HTML")
+        bot.send_message(
+            chat_id=chat_id, text=session.render(), parse_mode="HTML")
 
     def text(self, bot, update):
         chat_id = update.message.chat_id
@@ -204,11 +214,13 @@ During the game, your moves are numbers of columns to drop the disk.
             return
 
         if move_col < 0 or move_col > game.GAME_COLS:
-            bot.send_message(chat_id=chat_id, text="Wrong column specified! It must be in range 0-6")
+            bot.send_message(
+                chat_id=chat_id, text="Wrong column specified! It must be in range 0-6")
             return
 
         if not session.is_valid_move(move_col):
-            bot.send_message(chat_id=chat_id, text="Move %d is invalid!" % move_col)
+            bot.send_message(
+                chat_id=chat_id, text="Move %d is invalid!" % move_col)
             return
 
         won = session.move_player(move_col)
@@ -219,7 +231,8 @@ During the game, your moves are numbers of columns to drop the disk.
             return
 
         won = session.move_bot()
-        bot.send_message(chat_id=chat_id, text=session.render(), parse_mode="HTML")
+        bot.send_message(
+            chat_id=chat_id, text=session.render(), parse_mode="HTML")
 
         if won:
             bot.send_message(chat_id=chat_id, text="I won! Wheeee!")
@@ -227,7 +240,8 @@ During the game, your moves are numbers of columns to drop the disk.
             del self.sessions[chat_id]
         # checking for a draw
         if session.is_draw():
-            bot.send_message(chat_id=chat_id, text="Draw position. That's unlikely, but possible. 1:1, see ya!")
+            bot.send_message(
+                chat_id=chat_id, text="Draw position. That's unlikely, but possible. 1:1, see ya!")
             self._save_log(session, bot_score=0)
             del self.sessions[chat_id]
 
@@ -242,22 +256,28 @@ During the game, your moves are numbers of columns to drop the disk.
         items = list(self.leaderboard.items())
         items.sort(reverse=True, key=lambda p: p[1][0])
         for user, (wins, losses, draws) in items:
-            res.append("%20s: won=%d, lost=%d, draw=%d" % (user[:20], wins, losses, draws))
+            res.append("%20s: won=%d, lost=%d, draw=%d" %
+                       (user[:20], wins, losses, draws))
         l = "\n".join(res)
-        bot.send_message(chat_id=update.message.chat_id, text="<pre>" + l + "</pre>", parse_mode="HTML")
+        bot.send_message(chat_id=update.message.chat_id,
+                         text="<pre>" + l + "</pre>", parse_mode="HTML")
 
     def command_refresh(self, bot, update):
         self.models = self._read_models(self.models_dir)
-        bot.send_message(chat_id=update.message.chat_id, text="Models reloaded, %d files have found" % len(self.models))
+        bot.send_message(chat_id=update.message.chat_id,
+                         text="Models reloaded, %d files have found" % len(self.models))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(format="%(asctime)-15s %(levelname)s %(message)s", level=logging.INFO)
+    logging.basicConfig(
+        format="%(asctime)-15s %(levelname)s %(message)s", level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=CONFIG_DEFAULT,
                         help="Configuration file for the bot, default=" + CONFIG_DEFAULT)
-    parser.add_argument("-m", "--models", required=True, help="Directory name with models to serve")
-    parser.add_argument("-l", "--log", required=True, help="Log name to keep the games and leaderboard")
+    parser.add_argument("-m", "--models", required=True,
+                        help="Directory name with models to serve")
+    parser.add_argument("-l", "--log", required=True,
+                        help="Log name to keep the games and leaderboard")
     prog_args = parser.parse_args()
 
     conf = configparser.ConfigParser()
@@ -268,12 +288,18 @@ if __name__ == "__main__":
     player_bot = PlayerBot(prog_args.models, prog_args.log)
 
     updater = telegram.ext.Updater(conf['telegram']['api'])
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('help', player_bot.command_help))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('list', player_bot.command_list))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('top', player_bot.command_top))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('play', player_bot.command_play, pass_args=True))
-    updater.dispatcher.add_handler(telegram.ext.CommandHandler('refresh', player_bot.command_refresh))
-    updater.dispatcher.add_handler(telegram.ext.MessageHandler(telegram.ext.Filters.text, player_bot.text))
+    updater.dispatcher.add_handler(
+        telegram.ext.CommandHandler('help', player_bot.command_help))
+    updater.dispatcher.add_handler(
+        telegram.ext.CommandHandler('list', player_bot.command_list))
+    updater.dispatcher.add_handler(
+        telegram.ext.CommandHandler('top', player_bot.command_top))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler(
+        'play', player_bot.command_play, pass_args=True))
+    updater.dispatcher.add_handler(telegram.ext.CommandHandler(
+        'refresh', player_bot.command_refresh))
+    updater.dispatcher.add_handler(telegram.ext.MessageHandler(
+        telegram.ext.Filters.text, player_bot.text))
     updater.dispatcher.add_error_handler(player_bot.error)
 
     log.info("Bot initialized, started serving")
