@@ -1,1 +1,4 @@
-res
+runs/
+saves/
+*.pyc
+*__pycache__/
