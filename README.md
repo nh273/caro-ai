@@ -16,3 +16,7 @@ api=<API KEY HERE>
 ```
 `telegram` should be in square brackets. Your API KEY can just be pasted without any brackets or quotes.
 Run Telegram bot with `python telegram-bot.py -m [directory with model files] -l [path to log file]`
+
+Models can also play against one another using
+`python play.py model1 model2 ...` e.g.:
+`python play.py saves/test1/best_009_02700.dat saves/test1/best_008_02200.dat`
