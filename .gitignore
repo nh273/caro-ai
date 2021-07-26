@@ -3,3 +3,4 @@ saves/
 *.pyc
 *__pycache__/
 .config
+logs/
