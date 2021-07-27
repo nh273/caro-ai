@@ -12,7 +12,9 @@ import torch.nn.functional as F
 class MCTS:
     """
     Class keeps statistics for every state encountered during the search
+
     """
+
     def __init__(self, c_puct=1.0):
         self.c_puct = c_puct
         # count of visits, state_int -> [N(s, a)]
@@ -70,10 +72,10 @@ class MCTS:
             score = [
                 value + self.c_puct*prob*total_sqrt/(1+count)
                 for value, prob, count in
-                    zip(values_avg, probs, counts)
+                zip(values_avg, probs, counts)
             ]
             invalid_actions = set(range(game.GAME_COLS)) - \
-                              set(game.possible_moves(cur_state))
+                set(game.possible_moves(cur_state))
             for invalid in invalid_actions:
                 score[invalid] = -np.inf
             action = int(np.argmax(score))

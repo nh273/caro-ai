@@ -20,3 +20,6 @@ Run Telegram bot with `python telegram-bot.py -m [directory with model files] -l
 Models can also play against one another using
 `python play.py model1 model2 ...` e.g.:
 `python play.py saves/test1/best_009_02700.dat saves/test1/best_008_02200.dat`
+
+## Components
+### MCTS
