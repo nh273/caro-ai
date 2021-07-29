@@ -11,6 +11,8 @@ ptan = "0.7"
 tensorboardx = "2.1"
 
 [dev-packages]
+torch-tb-profiler = "*"
+tensorboard = "*"
 
 [requires]
 python_version = "3.7"

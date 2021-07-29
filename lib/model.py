@@ -131,31 +131,6 @@ def state_lists_to_batch(state_lists, who_moves_lists, device="cpu"):
     return torch.tensor(batch).to(device)
 
 
-# def play_game(net1, net2, cuda=False):
-#     cur_player = 0
-#     state = game.INITIAL_STATE
-#     nets = [net1, net2]
-#
-#     while True:
-#         state_list = game.decode_binary(state)
-#         batch_v = state_lists_to_batch([state_list], [cur_player], cuda)
-#         logits_v, _ = nets[cur_player](batch_v)
-#         probs_v = F.softmax(logits_v, dim=1)
-#         probs = probs_v[0].data.cpu().numpy()
-#         while True:
-#             action = np.random.choice(game.GAME_COLS, p=probs)
-#             if action in game.possible_moves(state):
-#                 break
-#         state, won = game.move(state, action, cur_player)
-#         if won:
-#             return 1.0 if cur_player == 0 else -1.0
-#         # check for the draw state
-#         if len(game.possible_moves(state)) == 0:
-#             return 0.0
-#         cur_player = 1 - cur_player
-#
-
-
 def play_game(mcts_stores, replay_buffer, net1, net2,
               steps_before_tau_0, mcts_searches, mcts_batch_size,
               net1_plays_first=None, device="cpu"):
