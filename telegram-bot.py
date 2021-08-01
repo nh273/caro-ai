@@ -13,7 +13,7 @@ import numpy as np
 import configparser
 import argparse
 
-from lib import game, model, mcts
+from lib import game, model, mcts, utils
 
 MCTS_SEARCHES = 20
 MCTS_BATCH_SIZE = 4
@@ -111,14 +111,14 @@ class PlayerBot:
 
     def _update_leaderboard(self, bot_score, bot_name, user_name):
         if bot_score > 0.5:
-            game.update_counts(self.leaderboard, bot_name, (1, 0, 0))
-            game.update_counts(self.leaderboard, user_name, (0, 1, 0))
+            utils.update_counts(self.leaderboard, bot_name, (1, 0, 0))
+            utils.update_counts(self.leaderboard, user_name, (0, 1, 0))
         elif bot_score < -0.5:
-            game.update_counts(self.leaderboard, bot_name, (0, 1, 0))
-            game.update_counts(self.leaderboard, user_name, (1, 0, 0))
+            utils.update_counts(self.leaderboard, bot_name, (0, 1, 0))
+            utils.update_counts(self.leaderboard, user_name, (1, 0, 0))
         else:
-            game.update_counts(self.leaderboard, bot_name, (0, 0, 1))
-            game.update_counts(self.leaderboard, user_name, (0, 0, 1))
+            utils.update_counts(self.leaderboard, bot_name, (0, 0, 1))
+            utils.update_counts(self.leaderboard, user_name, (0, 0, 1))
 
     def _save_log(self, session, bot_score):
         self._update_leaderboard(bot_score, os.path.basename(session.model_file),

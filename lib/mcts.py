@@ -4,8 +4,9 @@ Monte-Carlo Tree Search
 import math as m
 import numpy as np
 
-from lib import game, model
+from lib import model
 
+import torch
 import torch.nn.functional as F
 
 
@@ -15,7 +16,7 @@ class MCTS:
 
     """
 
-    def __init__(self, c_puct=1.0):
+    def __init__(self, game, c_puct=1.0):
         self.c_puct = c_puct
         # count of visits, state_int -> [N(s, a)]
         self.visit_count = {}
@@ -25,6 +26,7 @@ class MCTS:
         self.value_avg = {}
         # prior probability of actions, state_int -> [P(s,a)]
         self.probs = {}
+        self.game = game
 
     def clear(self):
         self.visit_count.clear()
@@ -64,7 +66,7 @@ class MCTS:
             # choose action to take, in the root node add the Dirichlet noise to the probs
             if cur_state == state_int:
                 noises = np.random.dirichlet(
-                    [0.03] * game.GAME_COLS)
+                    [0.03] * self.game.game_cols)
                 probs = [
                     0.75 * prob + 0.25 * noise
                     for prob, noise in zip(probs, noises)
@@ -74,20 +76,20 @@ class MCTS:
                 for value, prob, count in
                 zip(values_avg, probs, counts)
             ]
-            invalid_actions = set(range(game.GAME_COLS)) - \
-                set(game.possible_moves(cur_state))
+            invalid_actions = set(range(self.game.game_cols)) - \
+                set(self.game.possible_moves(cur_state))
             for invalid in invalid_actions:
                 score[invalid] = -np.inf
             action = int(np.argmax(score))
             actions.append(action)
-            cur_state, won = game.move(
+            cur_state, won = self.game.move(
                 cur_state, action, cur_player)
             if won:
                 # if somebody won the game, the value of the final state is -1 (as it is on opponent's turn)
                 value = -1.0
             cur_player = 1-cur_player
             # check for the draw
-            moves_count = len(game.possible_moves(cur_state))
+            moves_count = len(self.game.possible_moves(cur_state))
             if value is None and moves_count == 0:
                 value = 0.0
 
@@ -120,7 +122,7 @@ class MCTS:
             else:
                 if leaf_state not in planned:
                     planned.add(leaf_state)
-                    leaf_state_lists = game.decode_binary(
+                    leaf_state_lists = self.game.decode_binary(
                         leaf_state)
                     expand_states.append(leaf_state_lists)
                     expand_players.append(leaf_player)
@@ -129,8 +131,9 @@ class MCTS:
 
         # do expansion of nodes
         if expand_queue:
-            batch_v = model.state_lists_to_batch(
-                expand_states, expand_players, device)
+            batch_v = self.game.state_lists_to_batch(
+                expand_states, expand_players)
+            batch_v = torch.tensor(batch_v).to(device)
             logits_v, values_v = net(batch_v)
             probs_v = F.softmax(logits_v, dim=1)
             values = values_v.data.cpu().numpy()[:, 0]
@@ -139,9 +142,9 @@ class MCTS:
             # create the nodes
             for (leaf_state, states, actions), value, prob in \
                     zip(expand_queue, values, probs):
-                self.visit_count[leaf_state] = [0]*game.GAME_COLS
-                self.value[leaf_state] = [0.0]*game.GAME_COLS
-                self.value_avg[leaf_state] = [0.0]*game.GAME_COLS
+                self.visit_count[leaf_state] = [0]*self.game.game_cols
+                self.value[leaf_state] = [0.0]*self.game.game_cols
+                self.value_avg[leaf_state] = [0.0]*self.game.game_cols
                 self.probs[leaf_state] = prob
                 backup_queue.append((value, states, actions))
 
@@ -166,7 +169,7 @@ class MCTS:
         """
         counts = self.visit_count[state_int]
         if tau == 0:
-            probs = [0.0] * game.GAME_COLS
+            probs = [0.0] * self.game.game_cols
             probs[np.argmax(counts)] = 1.0
         else:
             counts = [count ** (1.0 / tau) for count in counts]

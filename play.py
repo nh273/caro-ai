@@ -3,7 +3,7 @@ import sys
 import time
 import argparse
 
-from lib import game, model
+from lib import game, model, utils
 
 import torch
 
@@ -50,9 +50,9 @@ if __name__ == "__main__":
             print("%s vs %s -> w=%d, l=%d, d=%d" % (name_1, name_2, wins, losses, draws))
             sys.stderr.write("Speed %.2f games/s\n" % speed_games)
             sys.stdout.flush()
-            game.update_counts(total_agent, name_1, (wins, losses, draws))
-            game.update_counts(total_agent, name_2, (losses, wins, draws))
-            game.update_counts(total_pairs, (name_1, name_2), (wins, losses, draws))
+            utils.update_counts(total_agent, name_1, (wins, losses, draws))
+            utils.update_counts(total_agent, name_2, (losses, wins, draws))
+            utils.update_counts(total_pairs, (name_1, name_2), (wins, losses, draws))
 
     # leaderboard by total wins
     total_leaders = list(total_agent.items())
