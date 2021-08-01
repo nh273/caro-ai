@@ -22,16 +22,20 @@ class TestBits(unittest.TestCase):
 class TestGameEncoding(unittest.TestCase):
     def test_simple_encode(self):
         e = game.encode_lists([[]]*7)
-        self.assertEqual(e, 0b000000000000000000000000000000000000000000110110110110110110110)
+        self.assertEqual(
+            e, 0b000000000000000000000000000000000000000000110110110110110110110)
         e = game.encode_lists([[1]*6]*7)
-        self.assertEqual(e, 0b111111111111111111111111111111111111111111000000000000000000000)
+        self.assertEqual(
+            e, 0b111111111111111111111111111111111111111111000000000000000000000)
         e = game.encode_lists([[0]*6]*7)
         self.assertEqual(e, 0)
 
     def test_simple_decode(self):
-        g = game.decode_binary(0b000000000000000000000000000000000000000000110110110110110110110)
+        g = game.decode_binary(
+            0b000000000000000000000000000000000000000000110110110110110110110)
         self.assertEqual(g, [[]]*7)
-        g = game.decode_binary(0b111111111111111111111111111111111111111111000000000000000000000)
+        g = game.decode_binary(
+            0b111111111111111111111111111111111111111111000000000000000000000)
         self.assertEqual(g, [[1]*6]*7)
         g = game.decode_binary(0)
         self.assertEqual(g, [[0]*6]*7)
@@ -41,9 +45,11 @@ class TestMoveFunctions(unittest.TestCase):
     def test_possible_moves(self):
         r = game.possible_moves(0)
         self.assertEqual(r, [])
-        r = game.possible_moves(0b111111111111111111111111111111111111111111000000000000000000000)
+        r = game.possible_moves(
+            0b111111111111111111111111111111111111111111000000000000000000000)
         self.assertEqual(r, [])
-        r = game.possible_moves(0b000000000000000000000000000000000000000000110110110110110110110)
+        r = game.possible_moves(
+            0b000000000000000000000000000000000000000000110110110110110110110)
         self.assertEqual(r, [0, 1, 2, 3, 4, 5, 6])
 
     def test_move_vertical_win(self):
@@ -130,5 +136,3 @@ class TestMoveFunctions(unittest.TestCase):
         s, won = game.move(f, 4, 0)
         self.assertTrue(won)
         self.assertEqual(s, 3531389463375529686)
-
-pass
