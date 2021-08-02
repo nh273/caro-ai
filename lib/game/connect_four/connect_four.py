@@ -118,13 +118,21 @@ class ConnectFour(BaseGame):
 
     def possible_moves(self, state_int):
         """
-        This function could be calculated directly from bits, but I'm too lazy
+        Returns a list of moves that we can make i.e. columns that are not full
         :param state_int: field representation
         :return: the list of columns which we can make a move
         """
         assert isinstance(state_int, int)
         field = self.decode_binary(state_int)
         return [idx for idx, col in enumerate(field) if len(col) < self.game_rows]
+
+    def invalid_moves(self, state_int):
+        """Returns list of moves that are not valid (useful for model to penalize)
+
+        Args:
+            state_int (int): Integer representation of the game state
+        """
+        return set(range(self.game_cols)) - set(self.possible_moves(state_int))
 
     def _encode_list_state(self, dest_np, state_list, who_move):
         """

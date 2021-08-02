@@ -76,8 +76,7 @@ class MCTS:
                 for value, prob, count in
                 zip(values_avg, probs, counts)
             ]
-            invalid_actions = set(range(self.game.game_cols)) - \
-                set(self.game.possible_moves(cur_state))
+            invalid_actions = self.game.invalid_moves(cur_state)
             for invalid in invalid_actions:
                 score[invalid] = -np.inf
             action = int(np.argmax(score))

@@ -33,6 +33,18 @@ STEPS_BEFORE_TAU_0 = 10
 
 
 def evaluate(game, net1, net2, rounds, device="cpu"):
+    """[summary]
+
+    Args:
+        game ([type]): [description]
+        net1 ([type]): [description]
+        net2 ([type]): [description]
+        rounds ([type]): [description]
+        device (str, optional): [description]. Defaults to "cpu".
+
+    Returns:
+        [type]: [description]
+    """
     n1_win, n2_win = 0, 0
     mcts_stores = [mcts.MCTS(game), mcts.MCTS(game)]
 
@@ -48,12 +60,59 @@ def evaluate(game, net1, net2, rounds, device="cpu"):
     return n1_win / (n1_win + n2_win)
 
 
-if __name__ == "__main__":
+def parse_args():
+    """Add and parse arguments.
+    Returns:
+        [args]: args object with parsed arguments in its fields
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--name", required=True, help="Name of the run")
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable CUDA")
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def train_model(game, replay_buffer, optimizer, tb_tracker, device):
+    sum_loss = 0.0
+    sum_value_loss = 0.0
+    sum_policy_loss = 0.0
+
+    for _ in range(TRAIN_ROUNDS):
+        batch = random.sample(replay_buffer, BATCH_SIZE)
+        batch_states, batch_who_moves, batch_probs, batch_values = zip(
+            *batch)
+        batch_states_lists = [game.decode_binary(
+            state) for state in batch_states]
+        states_v = game.state_lists_to_batch(
+            batch_states_lists, batch_who_moves)
+        states_v = torch.tensor(states_v).to(device)
+
+        optimizer.zero_grad()
+        probs_v = torch.FloatTensor(batch_probs).to(device)
+        values_v = torch.FloatTensor(batch_values).to(device)
+        out_logits_v, out_values_v = net(states_v)
+
+        loss_value_v = F.mse_loss(out_values_v.squeeze(-1), values_v)
+        loss_policy_v = -F.log_softmax(out_logits_v, dim=1) * probs_v
+        loss_policy_v = loss_policy_v.sum(dim=1).mean()
+
+        loss_v = loss_policy_v + loss_value_v
+        loss_v.backward()
+        optimizer.step()
+        sum_loss += loss_v.item()
+        sum_value_loss += loss_value_v.item()
+        sum_policy_loss += loss_policy_v.item()
+
+    tb_tracker.track("loss_total", sum_loss / TRAIN_ROUNDS, step_idx)
+    tb_tracker.track("loss_value", sum_value_loss /
+                     TRAIN_ROUNDS, step_idx)
+    tb_tracker.track("loss_policy", sum_policy_loss /
+                     TRAIN_ROUNDS, step_idx)
+
+
+if __name__ == "__main__":
+    args = parse_args()
+
     device = torch.device("cuda" if args.cuda else "cpu")
 
     saves_path = os.path.join("saves", args.name)
@@ -99,44 +158,10 @@ if __name__ == "__main__":
             if len(replay_buffer) < MIN_REPLAY_TO_TRAIN:
                 continue
 
-            # train
-            sum_loss = 0.0
-            sum_value_loss = 0.0
-            sum_policy_loss = 0.0
+            # Replay buffer has sufficient data. Train the net
+            train_model(game, replay_buffer, optimizer, tb_tracker, device)
 
-            for _ in range(TRAIN_ROUNDS):
-                batch = random.sample(replay_buffer, BATCH_SIZE)
-                batch_states, batch_who_moves, batch_probs, batch_values = zip(
-                    *batch)
-                batch_states_lists = [game.decode_binary(
-                    state) for state in batch_states]
-                states_v = game.state_lists_to_batch(
-                    batch_states_lists, batch_who_moves)
-                states_v = torch.tensor(states_v).to(device)
-
-                optimizer.zero_grad()
-                probs_v = torch.FloatTensor(batch_probs).to(device)
-                values_v = torch.FloatTensor(batch_values).to(device)
-                out_logits_v, out_values_v = net(states_v)
-
-                loss_value_v = F.mse_loss(out_values_v.squeeze(-1), values_v)
-                loss_policy_v = -F.log_softmax(out_logits_v, dim=1) * probs_v
-                loss_policy_v = loss_policy_v.sum(dim=1).mean()
-
-                loss_v = loss_policy_v + loss_value_v
-                loss_v.backward()
-                optimizer.step()
-                sum_loss += loss_v.item()
-                sum_value_loss += loss_value_v.item()
-                sum_policy_loss += loss_policy_v.item()
-
-            tb_tracker.track("loss_total", sum_loss / TRAIN_ROUNDS, step_idx)
-            tb_tracker.track("loss_value", sum_value_loss /
-                             TRAIN_ROUNDS, step_idx)
-            tb_tracker.track("loss_policy", sum_policy_loss /
-                             TRAIN_ROUNDS, step_idx)
-
-            # evaluate net
+            # evaluate net, then replace best net if performance is satisfactory
             if step_idx % EVALUATE_EVERY_STEP == 0:
                 win_ratio = evaluate(game,
                                      net, best_net.target_model, rounds=EVALUATION_ROUNDS, device=device)
