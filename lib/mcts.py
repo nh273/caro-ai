@@ -141,6 +141,60 @@ class MCTS:
             self.search_minibatch(batch_size, state_int,
                                   player, net, device)
 
+    def _create_node(self, leaf_state, prob):
+        """[summary]
+
+        Args:
+            leaf_state ([type]): [description]
+        """
+        self.visit_count[leaf_state] = [0]*self.game.game_cols
+        self.value[leaf_state] = [0.0]*self.game.game_cols
+        self.value_avg[leaf_state] = [0.0]*self.game.game_cols
+        self.probs[leaf_state] = prob
+
+    def _expand_tree(self, expand_states, expand_players, expand_queue, backup_queue, net, device):
+        """[summary]
+
+        Args:
+            expand_states ([type]): [description]
+            expand_players ([type]): [description]
+            expand_queue ([type]): [description]
+            backup_queue ([type]): [description]
+            net():
+            device():
+        """
+        batch_v = self.game.state_lists_to_batch(
+            expand_states, expand_players)
+        batch_v = torch.tensor(batch_v).to(device)
+        logits_v, values_v = net(batch_v)
+        probs_v = F.softmax(logits_v, dim=1)
+        values = values_v.data.cpu().numpy()[:, 0]
+        probs = probs_v.data.cpu().numpy()
+
+        # create the nodes
+        for (leaf_state, states, actions), value, prob in zip(expand_queue, values, probs):
+            self._create_node(leaf_state, prob)
+            backup_queue.append((value, states, actions))
+
+    def _backup(self, value, states, actions):
+        """[summary]
+
+        Args:
+            value ([type]): [description]
+            states ([type]): [description]
+            actions ([type]): [description]
+        """
+        # leaf state is not stored in states and actions,
+        # so the value of the leaf will be the value of the opponent
+        cur_value = -value
+        for state_int, action in zip(states[::-1],
+                                     actions[::-1]):
+            self.visit_count[state_int][action] += 1
+            self.value[state_int][action] += cur_value
+            self.value_avg[state_int][action] = (self.value[state_int][action] /
+                                                 self.visit_count[state_int][action])
+            cur_value = -cur_value  # flip the sign after each turn
+
     def search_minibatch(self, batch_size, state_int, player,
                          net, device="cpu"):
         """
@@ -176,35 +230,12 @@ class MCTS:
 
         # do expansion of nodes
         if expand_queue:
-            batch_v = self.game.state_lists_to_batch(
-                expand_states, expand_players)
-            batch_v = torch.tensor(batch_v).to(device)
-            logits_v, values_v = net(batch_v)
-            probs_v = F.softmax(logits_v, dim=1)
-            values = values_v.data.cpu().numpy()[:, 0]
-            probs = probs_v.data.cpu().numpy()
-
-            # create the nodes
-            for (leaf_state, states, actions), value, prob in \
-                    zip(expand_queue, values, probs):
-                self.visit_count[leaf_state] = [0]*self.game.game_cols
-                self.value[leaf_state] = [0.0]*self.game.game_cols
-                self.value_avg[leaf_state] = [0.0]*self.game.game_cols
-                self.probs[leaf_state] = prob
-                backup_queue.append((value, states, actions))
+            self._expand_tree(expand_states, expand_players,
+                              expand_queue, backup_queue, net, device)
 
         # perform backup of the searches
         for value, states, actions in backup_queue:
-            # leaf state is not stored in states and actions, so the value of the leaf will be the value of the opponent
-            cur_value = -value
-            for state_int, action in zip(states[::-1],
-                                         actions[::-1]):
-                self.visit_count[state_int][action] += 1
-                self.value[state_int][action] += cur_value
-                self.value_avg[state_int][action] = \
-                    self.value[state_int][action] / \
-                    self.visit_count[state_int][action]
-                cur_value = -cur_value
+            self._backup(value, states, actions)
 
     def get_policy_value(self, state_int, tau=1):
         """
