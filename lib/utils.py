@@ -29,7 +29,7 @@ def play_game(game, mcts_stores, replay_buffer, net1, net2,
     assert isinstance(mcts_batch_size, int) and mcts_batch_size > 0
 
     if mcts_stores is None:
-        mcts_stores = [mcts.MCTS(), mcts.MCTS()]
+        mcts_stores = [mcts.MCTS(game), mcts.MCTS(game)]
     elif isinstance(mcts_stores, mcts.MCTS):
         mcts_stores = [mcts_stores, mcts_stores]
 
