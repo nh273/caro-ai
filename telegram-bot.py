@@ -309,5 +309,3 @@ if __name__ == "__main__":
     log.info("Bot initialized, started serving")
     updater.start_polling()
     updater.idle()
-
-    pass

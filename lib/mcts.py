@@ -37,9 +37,60 @@ class MCTS:
     def __len__(self):
         return len(self.value)
 
+    def _add_noise(self, probs):
+        """Add Dirichlet noise to action probabilities
+
+        Args:
+            probs (list): List of probabilities of actions
+        """
+        # The alpha value for dirichlet distribution (0.03)
+        # and exploration coefficient (0.25) are
+        # taken from the AlphaZero paper for Go.
+        alpha = 0.03
+        explore = 0.25
+        noises = np.random.dirichlet(
+            [alpha] * self.game.game_cols)
+        probs_with_noise = [
+            (1 - explore) * prob + explore * noise
+            for prob, noise in zip(probs, noises)
+        ]
+        return probs_with_noise
+
+    def _calculate_upper_bound(self, values_avg, probs, counts):
+        """Calculate a score for each action given the game state
+        from average values, probabilities & counts.
+
+
+        Args:
+            values_avg (list of ints): Q(s, a) in the paper — The mean action value.
+                This is the average game result across current simulations that took action a.
+            probs (list of ints): P(s,a) — The prior probabilities as fetched from the network.
+            counts (list of ints): N(s,a) — The visit count, or number of times we’ve taken
+                this action given this sate during current simulations
+        """
+        total_sqrt = m.sqrt(sum(counts))
+        return [
+            value + self.c_puct * prob * total_sqrt/(1+count)
+            for value, prob, count in
+            zip(values_avg, probs, counts)
+        ]
+
+    def _mask_invalid_actions(self, scores, cur_state):
+        """Mask invalid actions from the neural net by penalizing it with
+        negative infinity scores.
+
+        Args:
+            scores (list of float): List of unmasked scores for each action
+            cur_state (int): State of the game
+        """
+        invalid_actions = self.game.invalid_moves(cur_state)
+        for invalid in invalid_actions:
+            scores[invalid] = -np.inf
+
     def find_leaf(self, state_int, player):
         """
         Traverse the tree until the end of game or leaf node
+        (state which we have not seen before)
         :param state_int: root node state
         :param player: player to move
         :return: tuple of (value, leaf_state, player, states, actions)
@@ -59,27 +110,15 @@ class MCTS:
             states.append(cur_state)
 
             counts = self.visit_count[cur_state]
-            total_sqrt = m.sqrt(sum(counts))
             probs = self.probs[cur_state]
             values_avg = self.value_avg[cur_state]
 
             # choose action to take, in the root node add the Dirichlet noise to the probs
             if cur_state == state_int:
-                noises = np.random.dirichlet(
-                    [0.03] * self.game.game_cols)
-                probs = [
-                    0.75 * prob + 0.25 * noise
-                    for prob, noise in zip(probs, noises)
-                ]
-            score = [
-                value + self.c_puct*prob*total_sqrt/(1+count)
-                for value, prob, count in
-                zip(values_avg, probs, counts)
-            ]
-            invalid_actions = self.game.invalid_moves(cur_state)
-            for invalid in invalid_actions:
-                score[invalid] = -np.inf
-            action = int(np.argmax(score))
+                probs = self._add_noise(probs)
+            scores = self._calculate_upper_bound(values_avg, probs, counts)
+            self._mask_invalid_actions(scores, cur_state)
+            action = int(np.argmax(scores))
             actions.append(action)
             cur_state, won = self.game.move(
                 cur_state, action, cur_player)
@@ -87,9 +126,8 @@ class MCTS:
                 # if somebody won the game, the value of the final state is -1 (as it is on opponent's turn)
                 value = -1.0
             cur_player = 1-cur_player
-            # check for the draw
-            moves_count = len(self.game.possible_moves(cur_state))
-            if value is None and moves_count == 0:
+            # check for draw
+            if value is None and len(self.game.possible_moves(cur_state)) == 0:
                 value = 0.0
 
         return value, cur_state, cur_player, states, actions
@@ -103,17 +141,25 @@ class MCTS:
             self.search_minibatch(batch_size, state_int,
                                   player, net, device)
 
-    def search_minibatch(self, count, state_int, player,
+    def search_minibatch(self, batch_size, state_int, player,
                          net, device="cpu"):
         """
-        Perform several MCTS searches.
+        Perform several MCTS searches. PyTorch neural net is trained in batches,
+        thus it is more convenient to perform the MCTS in batches as well.
+
+        Args:
+            batch_size (int): Number of searches in this batch
+            state_int ([type]): [description]
+            player ([type]): [description]
+            net ([type]): [description]
+            device (str, optional): [description]. Defaults to "cpu".
         """
         backup_queue = []
         expand_states = []
         expand_players = []
         expand_queue = []
         planned = set()
-        for _ in range(count):
+        for _ in range(batch_size):
             value, leaf_state, leaf_player, states, actions = \
                 self.find_leaf(state_int, player)
             if value is not None:
