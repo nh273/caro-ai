@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 from lib.game.connect_four import connect_four
 
 
@@ -138,3 +139,52 @@ class TestMoveFunctions:
         s, won = game.move(f, 4, 0)
         assert won == True
         assert s == 3531389463375529686
+
+    def test_encoding_to_model_view(self, game):
+        s = [[0, 1, 0], [0], [1, 1, 1], [], [1], [], []]
+        batch = game.state_lists_to_batch(
+            [s, s], [game.player_black, game.player_white])
+        np.testing.assert_equal(batch, [
+            # black player's view
+            [
+                # player
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0],
+                    [1, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 1, 0, 0],
+                ],
+                # opponent
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 0],
+                ]
+            ],
+            # white player's view
+            [
+                # player
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 0],
+                ],
+                # opponent
+                [
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0, 0],
+                    [1, 0, 1, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 1, 0, 0],
+                ]
+            ],
+        ])

@@ -106,7 +106,7 @@ class ConnectFour(BaseGame):
         bits = self.int_to_bits(state_int,
                                 bits=self.game_cols*self.game_rows + self.game_cols*self.bits_in_len)
         res = []
-        len_bits = bits[self.game_cols*self.game_cols:]
+        len_bits = bits[self.game_cols*self.game_rows:]
         for col in range(self.game_cols):
             vals = bits[col*self.game_rows:(col+1)*self.game_rows]
             lens = self.bits_to_int(
