@@ -34,7 +34,7 @@ STEPS_BEFORE_TAU_0 = 10
 
 def evaluate(game, net1, net2, rounds, device="cpu"):
     n1_win, n2_win = 0, 0
-    mcts_stores = [mcts.MCTS(), mcts.MCTS()]
+    mcts_stores = [mcts.MCTS(game), mcts.MCTS(game)]
 
     for r_idx in range(rounds):
         r, _ = utils.play_game(game=game, mcts_stores=mcts_stores, replay_buffer=None,
