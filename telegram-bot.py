@@ -13,7 +13,8 @@ import numpy as np
 import configparser
 import argparse
 
-from lib import game, model, mcts, utils
+from lib import model, mcts, utils
+from lib.game.connect_four.connect_four import ConnectFour
 
 MCTS_SEARCHES = 20
 MCTS_BATCH_SIZE = 4
@@ -35,45 +36,45 @@ log = logging.getLogger("telegram")
 
 
 class Session:
-    BOT_PLAYER = game.PLAYER_BLACK
-    USER_PLAYER = game.PLAYER_WHITE
-
-    def __init__(self, model_file, player_moves_first, player_id):
+    def __init__(self, game, model_file, player_moves_first, player_id):
+        self.game = game
+        self.BOT_PLAYER = game.player_black
+        self.USER_PLAYER = game.player_white
         self.model_file = model_file
         self.model = model.Net(
-            input_shape=model.OBS_SHAPE, actions_n=game.GAME_COLS)
+            input_shape=(2, game.game_rows, game.game_cols), actions_n=game.game_cols)
         self.model.load_state_dict(torch.load(
             model_file, map_location=lambda storage, loc: storage))
-        self.state = game.INITIAL_STATE
+        self.state = game.initial_state
         self.value = None
         self.player_moves_first = player_moves_first
         self.player_id = player_id
         self.moves = []
-        self.mcts_store = mcts.MCTS()
+        self.mcts_store = mcts.MCTS(game)
 
     def move_player(self, col):
         self.moves.append(col)
-        self.state, won = game.move(self.state, col, self.USER_PLAYER)
+        self.state, won = self.game.move(self.state, col, self.USER_PLAYER)
         return won
 
     def move_bot(self):
         self.mcts_store.search_batch(
             MCTS_SEARCHES, MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
         probs, values = self.mcts_store.get_policy_value(self.state, tau=0)
-        action = np.random.choice(game.GAME_COLS, p=probs)
+        action = np.random.choice(self.game.game_cols, p=probs)
         self.value = values[action]
         self.moves.append(action)
-        self.state, won = game.move(self.state, action, self.BOT_PLAYER)
+        self.state, won = self.game.move(self.state, action, self.BOT_PLAYER)
         return won
 
     def is_valid_move(self, move_col):
-        return move_col in game.possible_moves(self.state)
+        return move_col in self.game.possible_moves(self.state)
 
     def is_draw(self):
-        return len(game.possible_moves(self.state)) == 0
+        return len(self.game.possible_moves(self.state)) == 0
 
     def render(self):
-        l = game.render(self.state)
+        l = self.game.render(self.state)
         l = "\n".join(l)
         l = l.replace("0", 'O').replace("1", "X")
         board = "0123456\n-------\n" + l + "\n-------\n0123456"
@@ -84,7 +85,8 @@ class Session:
 
 
 class PlayerBot:
-    def __init__(self, models_dir, log_file):
+    def __init__(self, game, models_dir, log_file):
+        self.game = game
         self.sessions = {}
         self.models_dir = models_dir
         self.models = self._read_models(models_dir)
@@ -184,7 +186,8 @@ During the game, your moves are numbers of columns to drop the disk.
             del self.sessions[chat_id]
 
         player_moves = random.choice([False, True])
-        session = Session(self.models[model_id], player_moves, player_id)
+        session = Session(
+            self.game, self.models[model_id], player_moves, player_id)
         self.sessions[chat_id] = session
         if player_moves:
             bot.send_message(
@@ -213,7 +216,7 @@ During the game, your moves are numbers of columns to drop the disk.
                                                    "from 0 to 6 to specify your move.")
             return
 
-        if move_col < 0 or move_col > game.GAME_COLS:
+        if move_col < 0 or move_col > self.game.game_cols:
             bot.send_message(
                 chat_id=chat_id, text="Wrong column specified! It must be in range 0-6")
             return
@@ -285,7 +288,8 @@ if __name__ == "__main__":
         log.error("Configuration file %s not found", prog_args.config)
         sys.exit()
 
-    player_bot = PlayerBot(prog_args.models, prog_args.log)
+    game = ConnectFour()
+    player_bot = PlayerBot(game, prog_args.models, prog_args.log)
 
     updater = telegram.ext.Updater(conf['telegram']['api'])
     updater.dispatcher.add_handler(
