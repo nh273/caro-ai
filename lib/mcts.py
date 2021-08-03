@@ -113,7 +113,9 @@ class MCTS:
             probs = self.probs[cur_state]
             values_avg = self.value_avg[cur_state]
 
-            # choose action to take, in the root node add the Dirichlet noise to the probs
+            # In the root node (first move) add the Dirichlet noise to the probs
+            # to encourage exploration. Not needed for subsequent moves as will
+            # be sampling from a distribution of actions
             if cur_state == state_int:
                 probs = self._add_noise(probs)
             scores = self._calculate_upper_bound(values_avg, probs, counts)
