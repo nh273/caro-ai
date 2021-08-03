@@ -49,7 +49,7 @@ class MCTS:
         alpha = 0.03
         explore = 0.25
         noises = np.random.dirichlet(
-            [alpha] * self.game.game_cols)
+            [alpha] * self.game.action_space())
         probs_with_noise = [
             (1 - explore) * prob + explore * noise
             for prob, noise in zip(probs, noises)
@@ -149,9 +149,10 @@ class MCTS:
         Args:
             leaf_state ([type]): [description]
         """
-        self.visit_count[leaf_state] = [0]*self.game.game_cols
-        self.value[leaf_state] = [0.0]*self.game.game_cols
-        self.value_avg[leaf_state] = [0.0]*self.game.game_cols
+        action_space = self.game.action_space()
+        self.visit_count[leaf_state] = [0]*action_space
+        self.value[leaf_state] = [0.0]*action_space
+        self.value_avg[leaf_state] = [0.0]*action_space
         self.probs[leaf_state] = prob
 
     def _expand_tree(self, expand_states, expand_players, expand_queue, backup_queue, net, device):
@@ -247,7 +248,7 @@ class MCTS:
         """
         counts = self.visit_count[state_int]
         if tau == 0:
-            probs = [0.0] * self.game.game_cols
+            probs = [0.0] * self.game.action_space()
             probs[np.argmax(counts)] = 1.0
         else:
             counts = [count ** (1.0 / tau) for count in counts]

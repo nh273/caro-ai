@@ -88,7 +88,7 @@ def train_neural_net(game, replay_buffer, optimizer, tb_tracker, device):
         batch = random.sample(replay_buffer, BATCH_SIZE)
         batch_states, batch_who_moves, batch_probs, batch_values = zip(
             *batch)
-        batch_states_lists = [game.decode_binary(
+        batch_states_lists = [game.convert_mcts_state_to_nn_state(
             state) for state in batch_states]
         states_v = game.state_lists_to_batch(
             batch_states_lists, batch_who_moves)

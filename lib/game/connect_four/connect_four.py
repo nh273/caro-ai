@@ -79,7 +79,7 @@ class ConnectFour(BaseGame):
 
     def encode_lists(self, field_lists):
         """
-        Encode lists representation into the binary numbers
+        Encode lists representation into binary number representation
         :param field_lists: list of GAME_COLS lists with 0s and 1s
         :return: integer number with encoded game state
         """
@@ -115,6 +115,24 @@ class ConnectFour(BaseGame):
                 vals = vals[:-lens]
             res.append(vals)
         return res
+
+    def convert_mcts_state_to_nn_state(self, mcts_state):
+        """[summary]
+
+        Args:
+            mcts_state ([type]): [description]
+        """
+        return self.decode_binary(mcts_state)
+
+    def action_space(self) -> int:
+        """Return the total count of all possible actions that can be performed.
+        This returns all actions regardless of whether they are valid at each
+        game state.
+
+        Returns:
+            (int): count of total possible actions
+        """
+        return self.game_cols
 
     def possible_moves(self, state_int):
         """
