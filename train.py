@@ -166,7 +166,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    device = torch.device("cuda" if args.cuda else "cpu")
+    device = "cuda" if args.cuda else "cpu"
 
     saves_path = os.path.join("saves", args.name)
     os.makedirs(saves_path, exist_ok=True)
