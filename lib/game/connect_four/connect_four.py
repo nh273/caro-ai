@@ -189,18 +189,18 @@ class ConnectFour(BaseGame):
                 else:
                     dest_np[1, row_idx, col_idx] = 1.0
 
-    def state_lists_to_batch(self, state_lists: List[StateList], who_moves_lists):
+    def states_to_training_batch(self, state_ints: List[int], who_moves_lists):
         """
         Convert list of list states to batch for network
-        :param state_lists: list of 'list states'
+        :param state_ints: list of game states
         :param who_moves_lists: list of player index who moves
         :return Variable with observations
         """
-        assert isinstance(state_lists, list)
-        batch_size = len(state_lists)
+        batch_size = len(state_ints)
         batch = np.zeros((batch_size,) + self.obs_shape, dtype=np.float32)
-        for idx, (state, who_move) in enumerate(zip(state_lists, who_moves_lists)):
-            self._encode_list_state(batch[idx], state, who_move)
+        for idx, (state, who_move) in enumerate(zip(state_ints, who_moves_lists)):
+            converted_state = self.convert_mcts_state_to_nn_state(state)
+            self._encode_list_state(batch[idx], converted_state, who_move)
         return batch
 
     def _check_won(self, field, col, delta_row):

@@ -199,7 +199,7 @@ class MCTS:
             net():
             device():
         """
-        batch_v = self.game.state_lists_to_batch(
+        batch_v = self.game.states_to_training_batch(
             expand_states, expand_players)
         batch_v = torch.tensor(batch_v).to(device)
         logits_v, values_v = net(batch_v)
@@ -257,9 +257,7 @@ class MCTS:
             else:
                 if leaf_state not in planned:
                     planned.add(leaf_state)
-                    leaf_state_lists = self.game.decode_binary(
-                        leaf_state)
-                    expand_states.append(leaf_state_lists)
+                    expand_states.append(leaf_state)
                     expand_players.append(leaf_player)
                     expand_queue.append((leaf_state, states,
                                          actions))

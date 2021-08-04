@@ -2,13 +2,13 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Iterable, Hashable, Tuple, List
+from typing import Tuple, List
 
 
 class BaseGame(ABC):
     @property
     @abstractmethod
-    def initial_state(self) -> Hashable:
+    def initial_state(self) -> int:
         """The initial state of the game in MCTS form. This is used in
         utils.play_game to start the MCTS loop.
         """
@@ -41,19 +41,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def convert_mcts_state_to_nn_state(self, mcts_state: Hashable) -> List:
-        """[summary]
-
-        Args:
-            mcts_state (Hashable): [description]
-
-        Returns:
-            (List): [description]
-        """
-        pass
-
-    @abstractmethod
-    def possible_moves(self, mcts_state: Hashable) -> Iterable:
+    def possible_moves(self, mcts_state: int) -> List:
         """[summary]
 
         Args:
@@ -65,7 +53,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def invalid_moves(self, mcts_state: Hashable) -> Iterable:
+    def invalid_moves(self, mcts_state: int) -> List:
         """[summary]
 
         Args:
@@ -77,7 +65,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def state_lists_to_batch(self, state_lists: List[List], who_moves_lists: List[int]) -> List[List]:
+    def states_to_training_batch(self, state_lists: List[List], who_moves_lists: List[int]) -> List[List]:
         """[summary]
 
         Args:
@@ -90,7 +78,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def move(self, mcts_state: Hashable, move: int, player: int) -> Tuple[Hashable, bool]:
+    def move(self, mcts_state: int, move: int, player: int) -> Tuple[int, bool]:
         """[summary]
 
         Args:
@@ -104,7 +92,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def render(self, mcts_state: Hashable) -> str:
+    def render(self, mcts_state: int) -> str:
         """[summary]
 
         Args:

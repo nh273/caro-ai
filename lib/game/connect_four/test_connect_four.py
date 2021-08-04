@@ -142,7 +142,8 @@ class TestMoveFunctions:
 
     def test_encoding_to_model_view(self, game):
         s = [[0, 1, 0], [0], [1, 1, 1], [], [1], [], []]
-        batch = game.state_lists_to_batch(
+        s = game.encode_lists(s)
+        batch = game.states_to_training_batch(
             [s, s], [game.player_black, game.player_white])
         np.testing.assert_equal(batch, [
             # black player's view
