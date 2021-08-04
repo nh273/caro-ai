@@ -1,6 +1,8 @@
 import collections
 import numpy as np
+import torch
 from lib import mcts, model
+from lib.game.game import BaseGame
 
 
 def update_counts(counts_dict, key, counts):
@@ -9,16 +11,30 @@ def update_counts(counts_dict, key, counts):
     counts_dict[key] = res
 
 
-def play_game(game, mcts_stores, replay_buffer, net1, net2,
-              steps_before_tau_0, mcts_searches, mcts_batch_size,
-              net1_plays_first=None, device="cpu"):
+def play_game(game: BaseGame, mcts_stores, replay_buffer: collections.deque,
+              net1: model.Net, net2: model.Net,
+              steps_before_tau_0: int, mcts_searches: int, mcts_batch_size: int,
+              net1_plays_first: bool = None, device: torch.device):
     """
     Play one single game, memorizing transitions into the replay buffer
-    :param mcts_stores: could be None or single MCTS or two MCTSes for individual net
-    :param replay_buffer: queue with (state, probs, values), if None, nothing is stored
     :param net1: player1
     :param net2: player2
-    :return: value for the game in respect to player1 (+1 if p1 won, -1 if lost, 0 if draw)
+
+    Args:
+        game ([type]): [description]
+        mcts_stores ([type]): could be None or single MCTS or two MCTSes for individual net
+        replay_buffer (deque): queue with (state, probs, values), if None, nothing is stored
+        net1 (model.Net): [description]
+        net2 (model.Net): [description]
+        steps_before_tau_0 ([type]): [description]
+        mcts_searches (int): [description]
+        mcts_batch_size (int): [description]
+        net1_plays_first (bool, optional): [description]. Defaults to None.
+        device (str, optional): [description]. Defaults to "cpu".
+
+    Returns:
+        [int]: value for the game in respect to net_1 (+1 if p1 won, -1 if lost, 0 if draw)
+        [int]:
     """
     assert isinstance(replay_buffer, (collections.deque, type(None)))
     assert isinstance(mcts_stores, (mcts.MCTS, type(None), list))
@@ -53,7 +69,7 @@ def play_game(game, mcts_stores, replay_buffer, net1, net2,
         probs, _ = mcts_stores[cur_player].get_policy_value(
             state, tau=tau)
         game_history.append((state, cur_player, probs))
-        action = np.random.choice(game.game_cols, p=probs)
+        action = np.random.choice(game.action_space, p=probs)
         if action not in game.possible_moves(state):
             print("Impossible action selected")
         state, won = game.move(state, action, cur_player)

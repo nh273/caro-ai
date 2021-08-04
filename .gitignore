@@ -2,6 +2,7 @@ runs/
 saves/
 *.pyc
 *__pycache__/
+*.mypy_cache/
 .config
 logs/
 .DS_Store

@@ -1,5 +1,8 @@
 import numpy as np
 from lib.game.game import BaseGame
+from typing import Tuple, List, Hashable
+
+StateList = List[List[int]]
 
 
 class ConnectFour(BaseGame):
@@ -49,17 +52,44 @@ class ConnectFour(BaseGame):
         101,
         000
     ]
+    The bits then get concated together into 1 binary int
     """
 
     def __init__(self):
+        super().__init__()
         self.game_rows = 6
         self.game_cols = 7
         self.bits_in_len = 3
         self.player_black = 1
         self.player_white = 0
         self.count_to_win = 4
-        self.initial_state = self.encode_lists([[]] * self.game_cols)
-        self.obs_shape = (2, self.game_rows, self.game_cols)
+
+    @property
+    def initial_state(self) -> int:
+        """[summary]
+
+        Returns:
+            int: [description]
+        """
+        return self.encode_lists([[]] * self.game_cols)
+
+    @property
+    def obs_shape(self) -> Tuple[int, int, int]:
+        """[summary]
+
+        Returns:
+            Tuple[int, int, int]: [description]
+        """
+        return (2, self.game_rows, self.game_cols)
+
+    @property
+    def action_space(self) -> int:
+        """[summary]
+
+        Returns:
+            int: [description]
+        """
+        return self.game_cols
 
     @staticmethod
     def bits_to_int(bits):
@@ -77,7 +107,7 @@ class ConnectFour(BaseGame):
             num //= 2
         return res[::-1]
 
-    def encode_lists(self, field_lists):
+    def encode_lists(self, field_lists: List[List]) -> int:
         """
         Encode lists representation into binary number representation
         :param field_lists: list of GAME_COLS lists with 0s and 1s
@@ -96,7 +126,7 @@ class ConnectFour(BaseGame):
         bits.extend(len_bits)
         return self.bits_to_int(bits)
 
-    def decode_binary(self, state_int):
+    def decode_binary(self, state_int: int) -> List[List]:
         """
         Decode binary representation into the list view
         :param state_int: integer representing the field
@@ -116,7 +146,7 @@ class ConnectFour(BaseGame):
             res.append(vals)
         return res
 
-    def convert_mcts_state_to_nn_state(self, mcts_state):
+    def convert_mcts_state_to_nn_state(self, mcts_state: int) -> List[List]:  # type: ignore[override] # nopep8
         """[summary]
 
         Args:
@@ -124,17 +154,7 @@ class ConnectFour(BaseGame):
         """
         return self.decode_binary(mcts_state)
 
-    def action_space(self) -> int:
-        """Return the total count of all possible actions that can be performed.
-        This returns all actions regardless of whether they are valid at each
-        game state.
-
-        Returns:
-            (int): count of total possible actions
-        """
-        return self.game_cols
-
-    def possible_moves(self, state_int):
+    def possible_moves(self, state_int: int):
         """
         Returns a list of moves that we can make i.e. columns that are not full
         :param state_int: field representation
@@ -144,7 +164,7 @@ class ConnectFour(BaseGame):
         field = self.decode_binary(state_int)
         return [idx for idx, col in enumerate(field) if len(col) < self.game_rows]
 
-    def invalid_moves(self, state_int):
+    def invalid_moves(self, state_int: int):
         """Returns list of moves that are not valid (useful for model to penalize)
 
         Args:
@@ -152,7 +172,7 @@ class ConnectFour(BaseGame):
         """
         return set(range(self.game_cols)) - set(self.possible_moves(state_int))
 
-    def _encode_list_state(self, dest_np, state_list, who_move):
+    def _encode_list_state(self, dest_np: np.ndarray, state_list: StateList, who_move: int) -> None:
         """
         In-place encodes list state into the zero numpy array
         :param dest_np: dest array, expected to be zero
@@ -169,7 +189,7 @@ class ConnectFour(BaseGame):
                 else:
                     dest_np[1, row_idx, col_idx] = 1.0
 
-    def state_lists_to_batch(self, state_lists, who_moves_lists):
+    def state_lists_to_batch(self, state_lists: List[StateList], who_moves_lists):
         """
         Convert list of list states to batch for network
         :param state_lists: list of 'list states'

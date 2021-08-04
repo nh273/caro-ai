@@ -15,6 +15,7 @@ torch-tb-profiler = "*"
 tensorboard = "*"
 autopep8 = "*"
 pytest = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.7"
