@@ -1,6 +1,5 @@
 import collections
 import numpy as np
-import torch
 from lib import mcts, model
 from lib.game.game import BaseGame
 
@@ -14,7 +13,7 @@ def update_counts(counts_dict, key, counts):
 def play_game(game: BaseGame, mcts_stores, replay_buffer: collections.deque,
               net1: model.Net, net2: model.Net,
               steps_before_tau_0: int, mcts_searches: int, mcts_batch_size: int,
-              net1_plays_first: bool = None, device: torch.device):
+              net1_plays_first: bool = None, device: str = "cpu"):
     """
     Play one single game, memorizing transitions into the replay buffer
     :param net1: player1
