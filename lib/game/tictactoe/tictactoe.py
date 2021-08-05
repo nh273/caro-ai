@@ -149,7 +149,7 @@ class TicTacToe(BaseGame):
             for col_idx, cell in enumerate(row):
                 if cell == who_move:
                     dest_np[0, row_idx, col_idx] = 1.0
-                else:
+                elif cell != self.empty:
                     dest_np[1, row_idx, col_idx] = 1.0
 
     def states_to_training_batch(self, state_ints: List[int], who_moves_lists: List[int]) -> List[List]:
