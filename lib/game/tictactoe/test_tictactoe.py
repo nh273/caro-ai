@@ -96,3 +96,44 @@ class TestStatesToTrainingBatch:
         ]
 
         np.testing.assert_equal(batch, [batch_state_1, batch_state_2])
+
+
+class TestMove:
+    def test_moves(game):
+        board = int('222222222')
+        won, board = game.move(board, 0, 1)
+        assert won == False
+        assert board == int('202222222')
+
+        won, board = game.move(board, 1, 5)
+        assert won == False
+        assert board == int('202221222')
+
+        won, board = game.move(board, 0, 8)
+        assert won == False
+        assert board == int('202222220')
+
+        won, board = game.move(board, 1, 7)
+        assert won == False
+        assert board == int('202222210')
+
+    def test_winning_moves(game):
+        board = int('002112122')
+        won, new_board = game.move(board, 0, 2)
+        assert won == True
+        assert new_board == int('000112122')
+
+        board = int('021012212')
+        won, new_board = game.move(board, 0, 6)
+        assert won == True
+        assert new_board == int('021012012')
+
+        board = int('021102212')
+        won, new_board = game.move(board, 0, 9)
+        assert won == True
+        assert new_board == int('021102210')
+
+        board = int('120122012')
+        won, new_board = game.move(board, 0, 4)
+        assert won == True
+        assert new_board == int('120102012')
