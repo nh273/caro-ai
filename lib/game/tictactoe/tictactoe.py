@@ -169,7 +169,7 @@ class TicTacToe(BaseGame):
             self._encode_list_state(batch[idx], converted_state, who_move)
         return batch
 
-    def move(self, mcts_state: int, move: int, player: int) -> Tuple[int, bool]:
+    def move(self, mcts_state: int, move: int, player: int) -> Tuple[bool, int]:
         """[summary]
 
         Args:
@@ -189,7 +189,7 @@ class TicTacToe(BaseGame):
         won = tictactoe_helpers.check_win(
             board, (row_idx, col_idx), self.k_to_win, player)
         new_mcts_state = self.encode_game_state(board)
-        return won, new_mcts_state
+        return new_mcts_state, won
 
     def render(self, mcts_state: int) -> str:
         """[summary]
