@@ -170,7 +170,7 @@ class ConnectFour(BaseGame):
         Args:
             state_int (int): Integer representation of the game state
         """
-        return set(range(self.game_cols)) - set(self.possible_moves(state_int))
+        return list(set(range(self.game_cols)) - set(self.possible_moves(state_int)))
 
     def _encode_list_state(self, dest_np: np.ndarray, state_list: StateList, who_move: int) -> None:
         """
