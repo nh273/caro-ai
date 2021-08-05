@@ -77,7 +77,7 @@ class TicTacToe(BaseGame):
         Returns:
             str: [description]
         """
-        return mcts_state_str.ljust(self.board_len ** 2, "0")
+        return mcts_state_str.rjust(self.board_len ** 2, "0")
 
     def encode_game_state(self, state_list: List[List[int]]) -> int:
         """[summary]
@@ -122,7 +122,7 @@ class TicTacToe(BaseGame):
             Iterable: [description]
         """
         padded = self._pad_mcts_state(str(mcts_state))
-        return [i for i, c in enumerate(padded) if c == self.empty]
+        return [i for i, c in enumerate(padded) if c == str(self.empty)]
 
     def invalid_moves(self, mcts_state: int) -> List:
         """[summary]
@@ -134,7 +134,7 @@ class TicTacToe(BaseGame):
             List: [description]
         """
         padded = self._pad_mcts_state(str(mcts_state))
-        return [i for i, c in enumerate(padded) if c != self.empty]
+        return [i for i, c in enumerate(padded) if c != str(self.empty)]
 
     def _encode_list_state(self, dest_np: np.ndarray, state: Matrix, who_move: int) -> None:
         """
