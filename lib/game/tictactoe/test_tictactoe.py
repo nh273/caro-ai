@@ -44,3 +44,50 @@ class TestKInARow:
         assert helpers.k_in_a_row([0, -1, -1, -1], 3, -1) == True
         assert helpers.k_in_a_row([1, 0, 1, 1], 3, 1) == False
         assert helpers.k_in_a_row([-1, 1, -1, 1], 3, -1) == False
+
+
+class TestCheckWin:
+    def check_col_win(self):
+        board = [
+            [1, -1, 1],
+            [0, -1, 0],
+            [0, -1, 1]
+        ]
+        assert helpers.check_win(board, 3, -1) == True
+        assert helpers.check_win(board, 3, 1) == False
+
+    def check_row_win(self):
+        board = [
+            [1, 1, 1],
+            [0, -1, 0],
+            [0, -1, 1]
+        ]
+        assert helpers.check_win(board, 3, 1) == True
+        assert helpers.check_win(board, 3, -1) == False
+
+    def check_diag_win(self):
+        board = [
+            [1, -1, 1],
+            [0, 1, 0],
+            [0, -1, 1]
+        ]
+        assert helpers.check_win(board, 3, 1) == True
+        assert helpers.check_win(board, 3, -1) == False
+
+    def check_antidiag_win(self):
+        board = [
+            [0, -1, 1],
+            [0, 1, 0],
+            [1, -1, 1]
+        ]
+        assert helpers.check_win(board, 3, 1) == True
+        assert helpers.check_win(board, 3, -1) == False
+
+    def no_win(self):
+        board = [
+            [0, -1, 1],
+            [0, 0, 0],
+            [1, -1, 1]
+        ]
+        assert helpers.check_win(board, 3, 1) == False
+        assert helpers.check_win(board, 3, -1) == False

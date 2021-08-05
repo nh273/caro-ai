@@ -4,6 +4,25 @@ Matrix = List[List[int]]
 Coord = Tuple[int, int]
 
 
+def check_win(matrix: Matrix, move: Coord, k: int, token: int) -> bool:
+    """[summary]
+
+    Args:
+        matrix (Matrix): [description]
+        move (Coord): [description]
+        k (int): [description]
+        token (int): [description]
+
+    Returns:
+        bool: [description]
+    """
+    for func in (get_row, get_col, get_diag, get_antidiag):
+        arr = func(matrix, move)
+        if k_in_a_row(arr, k, token):
+            return True
+    return False
+
+
 def k_in_a_row(arr: List[int], k: int, token: int) -> bool:
     """[summary]
 
