@@ -8,6 +8,8 @@ import collections
 
 from lib import model, mcts, utils
 from lib.game.connect_four.connect_four import ConnectFour
+from lib.game.tictactoe.tictactoe import TicTacToe
+
 
 from tensorboardX import SummaryWriter
 
@@ -158,6 +160,8 @@ def parse_args():
     parser.add_argument("-n", "--name", required=True, help="Name of the run")
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable CUDA")
+    parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
+                        help="The type of game being trained. 0: Connect4, 1: TicTacToe")
     return parser.parse_args()
 
 
@@ -170,11 +174,12 @@ if __name__ == "__main__":
     os.makedirs(saves_path, exist_ok=True)
     writer = SummaryWriter(comment="-" + args.name)
 
-    game = ConnectFour()
-    model_shape = (2, game.game_rows, game.game_cols)
+    game_type = args.game
+    game = ConnectFour() if game_type == '0' else TicTacToe()
+    model_shape = game.obs_shape
 
     net = model.Net(input_shape=model_shape,
-                    actions_n=game.game_cols).to(device)
+                    actions_n=game.action_space).to(device)
     best_net = ptan.agent.TargetNet(net)
     print(net)
 

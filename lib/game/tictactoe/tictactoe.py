@@ -1,11 +1,12 @@
+import numpy as np
 from lib.game.game import BaseGame
 from lib.game.tictactoe import tictactoe_helpers
-from typing import List
+from typing import List, Tuple
 
 Matrix = List[List[int]]
 
 
-class NMKGame(BaseGame):
+class TicTacToe(BaseGame):
     """Represents the Tic
     """
 
@@ -19,9 +20,9 @@ class NMKGame(BaseGame):
         super().__init__()
         self.board_len = n
         self.k_to_win = k_to_win
-        self.player_X = 0
-        self.player_0 = 1
-        self.empty = '2'
+        self.player_black = 1
+        self.player_white = 0
+        self.empty = 2
 
     @staticmethod
     def flatten_nested_list(nested_list: List[List]) -> List:
@@ -35,24 +36,13 @@ class NMKGame(BaseGame):
         """
         return [item for sublist in nested_list for item in sublist]
 
-    def encode_game_state(self, state_list: List[List[int]]) -> int:
-        """[summary]
-
-        Args:
-            state_list (List[List[int]]): [description]
-
-        Returns:
-            int: [description]
-        """
-        flattened = self.flatten_nested_list(state_list)
-        return int(''.join(flattened))
-
     @property
     def initial_state(self) -> int:
         """The initial state of the game in MCTS form. This is used in
         utils.play_game to start the MCTS loop.
         """
-        return self.encode_game_state([[]])
+        empty_board = np.full((self.board_len, self.board_len), self.empty)
+        return self.encode_game_state(empty_board)
 
     @property
     def obs_shape(self) -> Tuple[int, ...]:
@@ -78,6 +68,30 @@ class NMKGame(BaseGame):
         """
         return self.board_len ** 2
 
+    def _pad_mcts_state(self, mcts_state_str: str) -> str:
+        """[summary]
+
+        Args:
+            mcts_state (int): [description]
+
+        Returns:
+            str: [description]
+        """
+        return mcts_state_str.ljust(self.board_len ** 2, "0")
+
+    def encode_game_state(self, state_list: List[List[int]]) -> int:
+        """[summary]
+
+        Args:
+            state_list (List[List[int]]): [description]
+
+        Returns:
+            int: [description]
+        """
+        flattened = self.flatten_nested_list(state_list)
+        stringified = [str(i) for i in flattened]
+        return int(''.join(stringified))
+
     def convert_mcts_state_to_list_state(self, mcts_state: int) -> Matrix:
         """[summary]
 
@@ -88,15 +102,14 @@ class NMKGame(BaseGame):
             (Matrix): [description]
         """
         # Pad to number of squares on board (in case of leading zeros)
-        padded = str(mcts_state).ljust(self.board_len ** 2, self.empty)
+        padded = self._pad_mcts_state(str(mcts_state))
         state = []
         for i, c in enumerate(padded):
-            row_idx = i // self.board_len
-            if row_idx == 0:
-                # new row
-                state.append([c])
+            if i % self.board_len == 0:
+                # new row only every board_len items
+                state.append([int(c)])
             else:
-                state[row_idx].append(c)
+                state[i // self.board_len].append(int(c))
         return state
 
     def possible_moves(self, mcts_state: int) -> List:
@@ -108,7 +121,7 @@ class NMKGame(BaseGame):
         Returns:
             Iterable: [description]
         """
-        padded = str(mcts_state).ljust(self.board_len ** 2, self.empty)
+        padded = self._pad_mcts_state(str(mcts_state))
         return [i for i, c in enumerate(padded) if c == self.empty]
 
     def invalid_moves(self, mcts_state: int) -> List:
@@ -120,7 +133,7 @@ class NMKGame(BaseGame):
         Returns:
             List: [description]
         """
-        padded = str(mcts_state).ljust(self.board_len ** 2, self.empty)
+        padded = self._pad_mcts_state(str(mcts_state))
         return [i for i, c in enumerate(padded) if c != self.empty]
 
     def _encode_list_state(self, dest_np: np.ndarray, state: Matrix, who_move: int) -> None:
@@ -152,7 +165,7 @@ class NMKGame(BaseGame):
         batch_size = len(state_ints)
         batch = np.zeros((batch_size,) + self.obs_shape, dtype=np.float32)
         for idx, (state, who_move) in enumerate(zip(state_ints, who_moves_lists)):
-            converted_state = self.convert_mcts_state_to_nn_state(state)
+            converted_state = self.convert_mcts_state_to_list_state(state)
             self._encode_list_state(batch[idx], converted_state, who_move)
         return batch
 
@@ -167,11 +180,11 @@ class NMKGame(BaseGame):
         Returns:
             Tuple[int, bool]: [description]
         """
-        assert player == self.player_black or player == self.player_white
+        assert player == self.player_white or player == self.player_black
         assert move >= 0 and move <= self.action_space
 
         board = self.convert_mcts_state_to_list_state(mcts_state)
-        row_idx, col_idx = divmod(move)
+        row_idx, col_idx = divmod(move, self.board_len)
         board[row_idx][col_idx] = player
         won = tictactoe_helpers.check_win(
             board, (row_idx, col_idx), self.k_to_win, player)
