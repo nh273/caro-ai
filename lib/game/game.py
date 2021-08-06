@@ -3,6 +3,7 @@
 
 from abc import ABC, abstractmethod
 from typing import Tuple, List
+import numpy as np
 
 
 class BaseGame(ABC):
@@ -65,7 +66,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def states_to_training_batch(self, state_lists: List[List], who_moves_lists: List[int]) -> List[List]:
+    def states_to_training_batch(self, state_lists: List, who_moves_lists: List[int]) -> np.ndarray:
         """[summary]
 
         Args:
@@ -73,7 +74,7 @@ class BaseGame(ABC):
             who_moves_lists (List[int]): [description]
 
         Returns:
-            List[List]: [description]
+            np.ndarray: [description]
         """
         pass
 

@@ -41,7 +41,8 @@ class TicTacToe(BaseGame):
         """The initial state of the game in MCTS form. This is used in
         utils.play_game to start the MCTS loop.
         """
-        empty_board = np.full((self.board_len, self.board_len), self.empty)
+        empty_board = np.full(
+            (self.board_len, self.board_len), self.empty).tolist()
         return self.encode_game_state(empty_board)
 
     @property
@@ -152,7 +153,8 @@ class TicTacToe(BaseGame):
                 elif cell != self.empty:
                     dest_np[1, row_idx, col_idx] = 1.0
 
-    def states_to_training_batch(self, state_ints: List[int], who_moves_lists: List[int]) -> List[List]:
+    def states_to_training_batch(self, state_ints: List[int],
+                                 who_moves_lists: List[int]) -> np.ndarray:
         """[summary]
 
         Args:
@@ -169,7 +171,7 @@ class TicTacToe(BaseGame):
             self._encode_list_state(batch[idx], converted_state, who_move)
         return batch
 
-    def move(self, mcts_state: int, move: int, player: int) -> Tuple[bool, int]:
+    def move(self, mcts_state: int, move: int, player: int) -> Tuple[int, bool]:
         """[summary]
 
         Args:

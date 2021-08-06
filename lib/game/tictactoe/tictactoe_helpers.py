@@ -27,9 +27,12 @@ def k_in_a_row(arr: List[int], k: int, token: int) -> bool:
     """[summary]
 
     Args:
-        arr ([type]): [description]
-        k ([type]): [description]
-        token ([type]): [description]
+        arr (List[int]): [description]
+        k (int): [description]
+        token (int): [description]
+
+    Returns:
+        bool: [description]
     """
     assert k > 1, "We do not handle trivial cases where k <= 1"
     if len(arr) < k:
@@ -50,6 +53,7 @@ def k_in_a_row(arr: List[int], k: int, token: int) -> bool:
             if i >= (len(arr) - k):
                 # There are less than k tokens left, we cannot match
                 return False
+    return False
 
 
 def get_row(matrix: Matrix, coord: Coord) -> List[int]:

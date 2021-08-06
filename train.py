@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import time
 import ptan
 import random
@@ -7,6 +8,7 @@ import argparse
 import collections
 
 from lib import model, mcts, utils
+from lib.game import game
 from lib.game.connect_four.connect_four import ConnectFour
 from lib.game.tictactoe.tictactoe import TicTacToe
 
@@ -33,8 +35,12 @@ EVALUATE_EVERY_STEP = 100
 EVALUATION_ROUNDS = 20
 STEPS_BEFORE_TAU_0 = 10
 
+Tracker = ptan.common.utils.TBMeanTracker
+Optimizer = torch.optim.Optimizer
 
-def self_play(game, mcts_store, replay_buffer, model, tb_tracker, device):
+
+def self_play(game: game.BaseGame, mcts_store: mcts.MCTS, replay_buffer: collections.deque,
+              model: model.Net, tb_tracker: Tracker, device: str) -> None:
     """Let the (current best) model play against itself to generate training data.
     Store the moves into a replay buffer.
 
@@ -62,11 +68,14 @@ def self_play(game, mcts_store, replay_buffer, model, tb_tracker, device):
     speed_nodes = game_nodes / dt
     tb_tracker.track("speed_steps", speed_steps, step_idx)
     tb_tracker.track("speed_nodes", speed_nodes, step_idx)
+    sys.stdout.flush()
     print("Step %d, steps %3d, leaves %4d, steps/s %5.2f, leaves/s %6.2f, best_idx %d, replay %d" % (
-        step_idx, game_steps, game_nodes, speed_steps, speed_nodes, best_idx, len(replay_buffer)))
+        step_idx, game_steps, game_nodes, speed_steps, speed_nodes, best_idx, len(replay_buffer)),
+        end='\r')
 
 
-def train_neural_net(game, replay_buffer, optimizer, tb_tracker, device):
+def train_neural_net(game: game.BaseGame, replay_buffer: collections.deque, optimizer: Optimizer,
+                     tb_tracker: Tracker, device: str) -> None:
     """Give a replay buffer that is sufficiently large, train the neural net
     using data from replay buffer in batches.
 
@@ -122,7 +131,8 @@ def train_neural_net(game, replay_buffer, optimizer, tb_tracker, device):
                      TRAIN_ROUNDS, step_idx)
 
 
-def evaluate(game, challenger, champion, rounds, device="cpu"):
+def evaluate(game: game.BaseGame, challenger: model.Net, champion: model.Net,
+             rounds: int, device: str = "cpu") -> float:
     """Evaluate performance of 2 neural nets trained to play game by letting them
     play rounds against each other.
 
@@ -148,7 +158,7 @@ def evaluate(game, challenger, champion, rounds, device="cpu"):
             champion_win += 1
         elif r > 0.5:
             challenger_win += 1
-        elif r == 0.5:
+        elif r == 0:
             draw += 1
     return challenger_win / (challenger_win + champion_win + draw)
 
