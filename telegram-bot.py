@@ -16,8 +16,8 @@ import argparse
 from lib import model, mcts, utils
 from lib.game.connect_four.connect_four import ConnectFour
 
-MCTS_SEARCHES = 20
-MCTS_BATCH_SIZE = 4
+MCTS_SEARCHES = 100
+MCTS_BATCH_SIZE = 5
 
 try:
     import telegram.ext
@@ -42,7 +42,7 @@ class Session:
         self.USER_PLAYER = game.player_white
         self.model_file = model_file
         self.model = model.Net(
-            input_shape=(2, game.game_rows, game.game_cols), actions_n=game.game_cols)
+            input_shape=game.obs_shape, actions_n=game.action_space)
         self.model.load_state_dict(torch.load(
             model_file, map_location=lambda storage, loc: storage))
         self.state = game.initial_state
@@ -52,32 +52,29 @@ class Session:
         self.moves = []
         self.mcts_store = mcts.MCTS(game)
 
-    def move_player(self, col):
-        self.moves.append(col)
-        self.state, won = self.game.move(self.state, col, self.USER_PLAYER)
+    def move_player(self, move: int) -> bool:
+        self.moves.append(move)
+        self.state, won = self.game.move(self.state, move, self.USER_PLAYER)
         return won
 
-    def move_bot(self):
+    def move_bot(self) -> bool:
         self.mcts_store.search_batch(
             MCTS_SEARCHES, MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
         probs, values = self.mcts_store.get_policy_value(self.state, tau=0)
-        action = np.random.choice(self.game.game_cols, p=probs)
+        action = np.random.choice(self.game.action_space, p=probs)
         self.value = values[action]
         self.moves.append(action)
         self.state, won = self.game.move(self.state, action, self.BOT_PLAYER)
         return won
 
-    def is_valid_move(self, move_col):
-        return move_col in self.game.possible_moves(self.state)
+    def is_valid_move(self, move: int) -> bool:
+        return move in self.game.possible_moves(self.state)
 
-    def is_draw(self):
+    def is_draw(self) -> bool:
         return len(self.game.possible_moves(self.state)) == 0
 
-    def render(self):
-        l = self.game.render(self.state)
-        l = "\n".join(l)
-        l = l.replace("0", 'O').replace("1", "X")
-        board = "0123456\n-------\n" + l + "\n-------\n0123456"
+    def render(self) -> str:
+        board = self.game.render(self.state)
         extra = ""
         if self.value is not None:
             extra = "Position evaluation: %.2f\n" % float(self.value)
@@ -244,7 +241,7 @@ During the game, your moves are numbers of columns to drop the disk.
         # checking for a draw
         if session.is_draw():
             bot.send_message(
-                chat_id=chat_id, text="Draw position. That's unlikely, but possible. 1:1, see ya!")
+                chat_id=chat_id, text="Draw position. 1:1, see ya!")
             self._save_log(session, bot_score=0)
             del self.sessions[chat_id]
 
@@ -279,17 +276,19 @@ if __name__ == "__main__":
                         help="Configuration file for the bot, default=" + CONFIG_DEFAULT)
     parser.add_argument("-m", "--models", required=True,
                         help="Directory name with models to serve")
-    parser.add_argument("-l", "--log", required=True,
+    parser.add_argument("-l", "--log", default=time.strftime("%Y%m%d-%H%M%S"),
                         help="Log name to keep the games and leaderboard")
-    prog_args = parser.parse_args()
+    parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
+                        help="The type of game being trained. 0: Connect4, 1: TicTacToe")
+    args = parser.parse_args()
 
     conf = configparser.ConfigParser()
-    if not conf.read(os.path.expanduser(prog_args.config)):
-        log.error("Configuration file %s not found", prog_args.config)
+    if not conf.read(os.path.expanduser(args.config)):
+        log.error("Configuration file %s not found", args.config)
         sys.exit()
 
-    game = ConnectFour()
-    player_bot = PlayerBot(game, prog_args.models, prog_args.log)
+    game = ConnectFour() if args.game == '0' else TicTacToe()
+    player_bot = PlayerBot(game, args.models, args.log)
 
     updater = telegram.ext.Updater(conf['telegram']['api'])
     updater.dispatcher.add_handler(

@@ -8,11 +8,13 @@ from lib.game.game import BaseGame
 def update_counts(counts_dict: Dict, key: Union[str, Tuple[str, str]], counts: Tuple[int, int, int]) -> None:
     """Update counts_dict with win, lose, draw from counts if key exist.
     Else initialize new entry with 0, 0, 0
+    Key can be a string representing a model name, or a tuple representing
+    2 dueling models
 
     Args:
-        counts_dict (Dict): [description]
-        key (Union[str, Tuple[str, str]]): [description]
-        counts (Tuple[int, int, int]): [description]
+        counts_dict (Dict): Dictionary that keep track of wins, losses, and draws
+        key (Union[str, Tuple[str, str]])
+        counts (Tuple[int, int, int]): Win, Losses, and Draws
     """
     v = counts_dict.get(key, (0, 0, 0))
     res = (v[0] + counts[0], v[1] + counts[1], v[2] + counts[2])

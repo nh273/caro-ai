@@ -264,11 +264,18 @@ class ConnectFour(BaseGame):
         state_new = self.encode_lists(field)
         return state_new, won
 
-    def render(self, state_int: int) -> List[str]:
-        state_list = self.decode_binary(state_int)
+    def _render_lines(self, state_list: StateList) -> List[str]:
         data = [[' '] * self.game_cols for _ in range(self.game_rows)]
         for col_idx, col in enumerate(state_list):
             for rev_row_idx, cell in enumerate(col):
                 row_idx = self.game_rows - rev_row_idx - 1
                 data[row_idx][col_idx] = str(cell)
         return [''.join(row) for row in data]
+
+    def render(self, state_int: int) -> str:
+        state_list = self.decode_binary(state_int)
+        lines_str = self._render_lines(state_list)
+        out = "\n".join(lines_str)
+        out = out.replace("0", 'O').replace("1", "X")
+        out_with_board = "0123456\n-------\n" + out + "\n-------\n0123456"
+        return out_with_board

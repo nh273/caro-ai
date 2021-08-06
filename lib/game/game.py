@@ -108,14 +108,13 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def render(self, mcts_state: int) -> Union[str, List[str]]:
+    def render(self, mcts_state: int) -> str:
         """Render a string representation of the current game state
 
         Args:
             mcts_state (int): Game state in MCTS form
 
         Returns:
-            Union[str, List[str]]: String or list of str representation of
-            game state
+            Union[str, List[str]]: String representation of game state
         """
         pass

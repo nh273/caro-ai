@@ -220,12 +220,15 @@ class MCTS:
             backup_queue.append((value, states, actions))
 
     def _backup(self, value: float, states: List[StateInt], actions: List[int]):
-        """[summary]
+        """Update the existing states with new values, average values, visit counts
+        as the MCTS process expands the state tree.
 
         Args:
-            value ([type]): [description]
-            states ([type]): [description]
-            actions ([type]): [description]
+            value (float): The value of a game state predicted by the neural net
+             or final value of the game (win/lose/draw)
+            states (List[int]): List of game states to be backed up
+            actions (List[int]): List of actions performed that led to the
+             corresponding game states
         """
         # leaf state is not stored in states and actions,
         # so the value of the leaf will be the value of the opponent
@@ -234,6 +237,7 @@ class MCTS:
                                      actions[::-1]):
             self.visit_count[state_int][action] += 1
             self.value[state_int][action] += cur_value
+            # update the average value with new value
             self.value_avg[state_int][action] = (self.value[state_int][action] /
                                                  self.visit_count[state_int][action])
             cur_value = -cur_value  # flip the sign after each turn
@@ -246,10 +250,10 @@ class MCTS:
 
         Args:
             batch_size (int): Number of searches in this batch
-            state_int ([type]): [description]
-            player ([type]): [description]
-            net ([type]): [description]
-            device (str, optional): [description]. Defaults to "cpu".
+            state_int (int): Game state in MCTS form
+            player (int): The player whose turn it is to make the move
+            net (Net): The neural net to get policy value for unencountered states
+            device (str, optional): PyTorch device. Defaults to "cpu".
         """
         backup_queue = []
         expand_states = []
@@ -280,15 +284,18 @@ class MCTS:
 
     def get_policy_value(self, state_int: StateInt, tau: int = 1) -> Tuple[List[float], List[float]]:
         """Extract policy and action-values by the state
-        :param state_int: state of the board
         :return: (probs, values)
 
         Args:
-            state_int ([type]): [description]
-            tau (int, optional): [description]. Defaults to 1.
+            state_int (int): state of the board
+            tau (int, optional): A hyper parameter that makes the model
+            explores more. Defaults to 1.
 
         Returns:
-            [type]: [description]
+            List[float]: List of probabilities for each action in the total
+            action space
+            List[float]: List of values for each action in the total
+            action space
         """
         counts = self.visit_count[state_int]
         if tau == 0:
