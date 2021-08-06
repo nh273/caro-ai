@@ -1,6 +1,6 @@
 import numpy as np
 from lib.game.game import BaseGame
-from typing import Tuple, List, Hashable
+from typing import Tuple, List
 
 StateList = List[List[int]]
 
@@ -107,7 +107,7 @@ class ConnectFour(BaseGame):
             num //= 2
         return res[::-1]
 
-    def encode_lists(self, field_lists: List[List]) -> int:
+    def encode_lists(self, field_lists: StateList) -> int:
         """
         Encode lists representation into binary number representation
         :param field_lists: list of GAME_COLS lists with 0s and 1s
@@ -126,7 +126,7 @@ class ConnectFour(BaseGame):
         bits.extend(len_bits)
         return self.bits_to_int(bits)
 
-    def decode_binary(self, state_int: int) -> List[List]:
+    def decode_binary(self, state_int: int) -> StateList:
         """
         Decode binary representation into the list view
         :param state_int: integer representing the field
@@ -146,7 +146,7 @@ class ConnectFour(BaseGame):
             res.append(vals)
         return res
 
-    def convert_mcts_state_to_nn_state(self, mcts_state: int) -> List[List]:  # type: ignore[override] # nopep8
+    def convert_mcts_state_to_nn_state(self, mcts_state: int) -> StateList:
         """[summary]
 
         Args:
@@ -154,7 +154,7 @@ class ConnectFour(BaseGame):
         """
         return self.decode_binary(mcts_state)
 
-    def possible_moves(self, state_int: int):
+    def possible_moves(self, state_int: int) -> List[int]:
         """
         Returns a list of moves that we can make i.e. columns that are not full
         :param state_int: field representation
@@ -164,7 +164,7 @@ class ConnectFour(BaseGame):
         field = self.decode_binary(state_int)
         return [idx for idx, col in enumerate(field) if len(col) < self.game_rows]
 
-    def invalid_moves(self, state_int: int):
+    def invalid_moves(self, state_int: int) -> List[int]:
         """Returns list of moves that are not valid (useful for model to penalize)
 
         Args:
@@ -189,7 +189,7 @@ class ConnectFour(BaseGame):
                 else:
                     dest_np[1, row_idx, col_idx] = 1.0
 
-    def states_to_training_batch(self, state_ints: List[int], who_moves_lists):
+    def states_to_training_batch(self, state_ints: List[int], who_moves_lists) -> np.ndarray:
         """
         Convert list of list states to batch for network
         :param state_ints: list of game states
@@ -203,7 +203,7 @@ class ConnectFour(BaseGame):
             self._encode_list_state(batch[idx], converted_state, who_move)
         return batch
 
-    def _check_won(self, field, col, delta_row):
+    def _check_won(self, field: StateList, col: int, delta_row: int) -> bool:
         """
         Check for horisontal/diagonal win condition for the last player moved in the column
         :param field: list of lists
@@ -238,7 +238,7 @@ class ConnectFour(BaseGame):
             cur_coord += delta_row
         return False
 
-    def move(self, state_int, col, player):
+    def move(self, state_int: int, col: int, player: int) -> Tuple[int, bool]:
         """
         Perform move into given column. Assume the move could be performed, otherwise, assertion will be raised
         :param state_int: current state
@@ -264,7 +264,7 @@ class ConnectFour(BaseGame):
         state_new = self.encode_lists(field)
         return state_new, won
 
-    def render(self, state_int):
+    def render(self, state_int: int) -> List[str]:
         state_list = self.decode_binary(state_int)
         data = [[' '] * self.game_cols for _ in range(self.game_rows)]
         for col_idx, col in enumerate(state_list):

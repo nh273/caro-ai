@@ -2,7 +2,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Tuple, List
+from typing import Tuple, List, Union
 import numpy as np
 
 
@@ -93,7 +93,7 @@ class BaseGame(ABC):
         pass
 
     @abstractmethod
-    def render(self, mcts_state: int) -> str:
+    def render(self, mcts_state: int) -> Union[str, List[str]]:
         """[summary]
 
         Args:
