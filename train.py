@@ -7,8 +7,10 @@ import random
 import argparse
 import collections
 
-from lib import model, mcts, utils
-from lib.game import game
+from lib.model import Net
+from lib.mcts import MCTS
+from lib.utils import play_game
+from lib.game.game import BaseGame
 from lib.game.connect_four.connect_four import ConnectFour
 from lib.game.tictactoe.tictactoe import TicTacToe
 
@@ -39,8 +41,8 @@ Tracker = ptan.common.utils.TBMeanTracker
 Optimizer = torch.optim.Optimizer
 
 
-def self_play(game: game.BaseGame, mcts_store: mcts.MCTS, replay_buffer: collections.deque,
-              model: model.Net, tb_tracker: Tracker, device: str) -> None:
+def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: collections.deque,
+              model: Net, tb_tracker: Tracker, device: str) -> None:
     """Let the (current best) model play against itself to generate training data.
     Store the moves into a replay buffer.
 
@@ -49,7 +51,7 @@ def self_play(game: game.BaseGame, mcts_store: mcts.MCTS, replay_buffer: collect
         mcts_store (MCTS): Monte Carlo Tree of fully-played games' states & outcomes
         replay_buffer (deque): Queue of moves and predicted values made by the
             current best net
-        model (model.Net): Neural net trained to play the game
+        model (Net): Neural net trained to play the game
         tb_tracker (Tensorflow Board tracker): Tracker to collect stats
         device (str): cpu or gpu for PyTorch
     """
@@ -57,10 +59,10 @@ def self_play(game: game.BaseGame, mcts_store: mcts.MCTS, replay_buffer: collect
     prev_nodes = len(mcts_store)
     game_steps = 0
     for _ in range(PLAY_EPISODES):
-        _, steps = utils.play_game(game, mcts_store, replay_buffer,
-                                   best_net.target_model, best_net.target_model,
-                                   steps_before_tau_0=STEPS_BEFORE_TAU_0, mcts_searches=MCTS_SEARCHES,
-                                   mcts_batch_size=MCTS_BATCH_SIZE, device=device)
+        _, steps = play_game(game, mcts_store, replay_buffer,
+                             best_net.target_model, best_net.target_model,
+                             steps_before_tau_0=STEPS_BEFORE_TAU_0, mcts_searches=MCTS_SEARCHES,
+                             mcts_batch_size=MCTS_BATCH_SIZE, device=device)
         game_steps += steps
     game_nodes = len(mcts_store) - prev_nodes
     dt = time.time() - t
@@ -74,7 +76,7 @@ def self_play(game: game.BaseGame, mcts_store: mcts.MCTS, replay_buffer: collect
         end='\r')
 
 
-def train_neural_net(game: game.BaseGame, replay_buffer: collections.deque, optimizer: Optimizer,
+def train_neural_net(game: BaseGame, replay_buffer: collections.deque, optimizer: Optimizer,
                      tb_tracker: Tracker, device: str) -> None:
     """Give a replay buffer that is sufficiently large, train the neural net
     using data from replay buffer in batches.
@@ -131,14 +133,14 @@ def train_neural_net(game: game.BaseGame, replay_buffer: collections.deque, opti
                      TRAIN_ROUNDS, step_idx)
 
 
-def evaluate(game: game.BaseGame, challenger: model.Net, champion: model.Net,
+def evaluate(game: BaseGame, challenger: Net, champion: Net,
              rounds: int, device: str = "cpu") -> float:
     """Evaluate performance of 2 neural nets trained to play game by letting them
     play rounds against each other.
 
     Args:
         game (Game): The game that the net is being trained to play
-        challenger, champion (model.Net): 2 instances of PyTorch neural net
+        challenger, champion (Net): 2 instances of PyTorch neural net
             trained to play game to compare performance
         rounds (int): Number of rounds that the nets will play
         device (str, optional): [description]. Defaults to "cpu".
@@ -147,13 +149,13 @@ def evaluate(game: game.BaseGame, challenger: model.Net, champion: model.Net,
         [float]: Proportions of win by challenger
     """
     challenger_win, champion_win, draw = 0, 0, 0
-    mcts_stores = [mcts.MCTS(game), mcts.MCTS(game)]
+    mcts_stores = [MCTS(game), MCTS(game)]
 
     for r_idx in range(rounds):
-        r, _ = utils.play_game(game=game, mcts_stores=mcts_stores, replay_buffer=None,
-                               net1=challenger, net2=champion,
-                               steps_before_tau_0=0, mcts_searches=20, mcts_batch_size=16,
-                               device=device)
+        r, _ = play_game(game=game, mcts_stores=mcts_stores, replay_buffer=None,
+                         net1=challenger, net2=champion,
+                         steps_before_tau_0=0, mcts_searches=20, mcts_batch_size=16,
+                         device=device)
         if r < -0.5:
             champion_win += 1
         elif r > 0.5:
@@ -190,15 +192,15 @@ if __name__ == "__main__":
     game = ConnectFour() if game_type == '0' else TicTacToe()
     model_shape = game.obs_shape
 
-    net = model.Net(input_shape=model_shape,
-                    actions_n=game.action_space).to(device)
+    net = Net(input_shape=model_shape,
+              actions_n=game.action_space).to(device)
     best_net = ptan.agent.TargetNet(net)
     print(net)
 
     optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9)
 
     replay_buffer = collections.deque(maxlen=REPLAY_BUFFER)
-    mcts_store = mcts.MCTS(game)
+    mcts_store = MCTS(game)
     step_idx = 0
     best_idx = 0
 
