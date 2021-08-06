@@ -189,7 +189,7 @@ During the game, your moves are numbers of columns to drop the disk.
         self.sessions[chat_id] = session
         if player_moves:
             bot.send_message(
-                chat_id=chat_id, text="Your move is first (you're playing with O), please give the column to put your checker - single number from 0 to 6")
+                chat_id=chat_id, text=f"Your move is first (you're playing with O), please give the position of your move - single number from 0 to {self.game.action_space}")
         else:
             bot.send_message(
                 chat_id=chat_id, text="The first move is mine (I'm playing with X), moving...")
