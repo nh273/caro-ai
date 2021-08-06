@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from lib.game.game import BaseGame
 from lib.game.tictactoe import tictactoe_helpers
@@ -242,4 +243,17 @@ class TicTacToe(BaseGame):
         Returns:
             str: String representation of game state
         """
-        pass
+        list_state = self.convert_mcts_state_to_list_state(mcts_state)
+        for row_idx, row in enumerate(list_state):
+            for col_idx, cell in enumerate(row):
+                if cell == self.empty:
+                    list_state[row_idx][col_idx] = str(
+                        row_idx * self.board_len + col_idx)
+                elif cell == self.player_white:
+                    list_state[row_idx][col_idx] = 'X'
+                elif cell == self.player_black:
+                    list_state[row_idx][col_idx] = 'O'
+        # substitute semi-colons with pipe |
+        list_str = [f'|{"|".join(row)}|' for row in list_state]
+        board = '\n'.join(list_str).replace(',', '')
+        return board

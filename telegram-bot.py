@@ -15,6 +15,7 @@ import argparse
 
 from lib import model, mcts, utils
 from lib.game.connect_four.connect_four import ConnectFour
+from lib.game.tictactoe.tictactoe import TicTacToe
 
 MCTS_SEARCHES = 100
 MCTS_BATCH_SIZE = 5
@@ -207,23 +208,18 @@ During the game, your moves are numbers of columns to drop the disk.
         session = self.sessions[chat_id]
 
         try:
-            move_col = int(update.message.text)
+            move = int(update.message.text)
         except ValueError:
             bot.send_message(chat_id=chat_id, text="I don't understand. In play mode you can give a number "
-                                                   "from 0 to 6 to specify your move.")
+                                                   "to specify your move.")
             return
 
-        if move_col < 0 or move_col > self.game.game_cols:
+        if not session.is_valid_move(move):
             bot.send_message(
-                chat_id=chat_id, text="Wrong column specified! It must be in range 0-6")
+                chat_id=chat_id, text="Move %d is invalid!" % move)
             return
 
-        if not session.is_valid_move(move_col):
-            bot.send_message(
-                chat_id=chat_id, text="Move %d is invalid!" % move_col)
-            return
-
-        won = session.move_player(move_col)
+        won = session.move_player(move)
         if won:
             bot.send_message(chat_id=chat_id, text="You won! Congratulations!")
             self._save_log(session, bot_score=-1)
@@ -276,7 +272,7 @@ if __name__ == "__main__":
                         help="Configuration file for the bot, default=" + CONFIG_DEFAULT)
     parser.add_argument("-m", "--models", required=True,
                         help="Directory name with models to serve")
-    parser.add_argument("-l", "--log", default=time.strftime("%Y%m%d-%H%M%S"),
+    parser.add_argument("-l", "--log", default=f'logs/{time.strftime("%Y%m%d-%H%M%S")}.log',
                         help="Log name to keep the games and leaderboard")
     parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
                         help="The type of game being trained. 0: Connect4, 1: TicTacToe")
