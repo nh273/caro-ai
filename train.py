@@ -136,7 +136,7 @@ def evaluate(game, challenger, champion, rounds, device="cpu"):
     Returns:
         [float]: Proportions of win by challenger
     """
-    challenger_win, champion_win = 0, 0
+    challenger_win, champion_win, draw = 0, 0, 0
     mcts_stores = [mcts.MCTS(game), mcts.MCTS(game)]
 
     for r_idx in range(rounds):
@@ -148,7 +148,9 @@ def evaluate(game, challenger, champion, rounds, device="cpu"):
             champion_win += 1
         elif r > 0.5:
             challenger_win += 1
-    return challenger_win / (challenger_win + champion_win)
+        elif r == 0.5:
+            draw += 1
+    return challenger_win / (challenger_win + champion_win + draw)
 
 
 def parse_args():
