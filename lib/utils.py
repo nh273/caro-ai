@@ -1,16 +1,25 @@
 import collections
 import numpy as np
+from typing import Union, Tuple, Dict
 from lib import mcts, model
 from lib.game.game import BaseGame
 
 
-def update_counts(counts_dict, key, counts):
+def update_counts(counts_dict: Dict, key: Union[str, Tuple[str, str]], counts: Tuple[int, int, int]) -> None:
+    """Update counts_dict with win, lose, draw from counts if key exist.
+    Else initialize new entry with 0, 0, 0
+
+    Args:
+        counts_dict (Dict): [description]
+        key (Union[str, Tuple[str, str]]): [description]
+        counts (Tuple[int, int, int]): [description]
+    """
     v = counts_dict.get(key, (0, 0, 0))
     res = (v[0] + counts[0], v[1] + counts[1], v[2] + counts[2])
     counts_dict[key] = res
 
 
-def play_game(game: BaseGame, mcts_stores, replay_buffer: collections.deque,
+def play_game(game: BaseGame, mcts_stores, replay_buffer: Union[collections.deque, None],
               net1: model.Net, net2: model.Net,
               steps_before_tau_0: int, mcts_searches: int, mcts_batch_size: int,
               net1_plays_first: bool = None, device: str = "cpu"):

@@ -6,6 +6,7 @@ import ptan
 import random
 import argparse
 import collections
+from typing import Union
 
 from lib.model import Net
 from lib.mcts import MCTS
@@ -37,12 +38,11 @@ EVALUATE_EVERY_STEP = 100
 EVALUATION_ROUNDS = 20
 STEPS_BEFORE_TAU_0 = 10
 
-Tracker = ptan.common.utils.TBMeanTracker
 Optimizer = torch.optim.Optimizer
 
 
-def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: collections.deque,
-              model: Net, tb_tracker: Tracker, device: str) -> None:
+def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: Union[collections.deque, None],
+              model: Net, tb_tracker, device: str) -> None:
     """Let the (current best) model play against itself to generate training data.
     Store the moves into a replay buffer.
 
@@ -52,7 +52,7 @@ def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: collections.deque
         replay_buffer (deque): Queue of moves and predicted values made by the
             current best net
         model (Net): Neural net trained to play the game
-        tb_tracker (Tensorflow Board tracker): Tracker to collect stats
+        tb_tracker (Tensorflow Board tracker) to collect stats
         device (str): cpu or gpu for PyTorch
     """
     t = time.time()
@@ -71,19 +71,20 @@ def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: collections.deque
     tb_tracker.track("speed_steps", speed_steps, step_idx)
     tb_tracker.track("speed_nodes", speed_nodes, step_idx)
     sys.stdout.flush()
+    buffer_len = len(replay_buffer) if replay_buffer else 0
     print("Step %d, steps %3d, leaves %4d, steps/s %5.2f, leaves/s %6.2f, best_idx %d, replay %d" % (
-        step_idx, game_steps, game_nodes, speed_steps, speed_nodes, best_idx, len(replay_buffer)),
+        step_idx, game_steps, game_nodes, speed_steps, speed_nodes, best_idx, buffer_len),
         end='\r')
 
 
 def train_neural_net(game: BaseGame, replay_buffer: collections.deque, optimizer: Optimizer,
-                     tb_tracker: Tracker, device: str) -> None:
+                     tb_tracker, device: str) -> None:
     """Give a replay buffer that is sufficiently large, train the neural net
     using data from replay buffer in batches.
 
     Args:
         game (Game): The type of game that the model is being trained on
-        replay_buffer (list): List of steps collected during self-play. This
+        replay_buffer (deque): Queue of steps collected during self-play. This
             is data used to train the neural net
         optimizer (PyTorch optimizer): optimizer to perform gradient descent
             & update neural net tensor values
@@ -103,12 +104,12 @@ def train_neural_net(game: BaseGame, replay_buffer: collections.deque, optimizer
             *batch)
         states_v = game.states_to_training_batch(
             batch_states, batch_who_moves)
-        states_v = torch.tensor(states_v).to(device)
+        states_tensor = torch.tensor(states_v).to(device)
 
         optimizer.zero_grad()
         probs_v = torch.FloatTensor(batch_probs).to(device)
         values_v = torch.FloatTensor(batch_values).to(device)
-        out_logits_v, out_values_v = net(states_v)
+        out_logits_v, out_values_v = net(states_tensor)
 
         # calculate MSE between model's value prediction vs actual result
         loss_value_v = F.mse_loss(out_values_v.squeeze(-1), values_v)

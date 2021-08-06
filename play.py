@@ -2,17 +2,18 @@
 import sys
 import time
 import argparse
+from typing import Dict, Tuple
+import torch
 
 from lib import model, utils
 from lib.game.connect_four.connect_four import ConnectFour
 from lib.game.tictactoe.tictactoe import TicTacToe
 
-import torch
-
 
 MCTS_SEARCHES = 10
 MCTS_BATCH_SIZE = 8
 
+WinLoseDraw = Tuple[int, int, int]
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -25,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
                         help="The type of game being evaluated. 0: Connect4, 1: TicTacToe")
     args = parser.parse_args()
-    device = torch.device("cuda" if args.cuda else "cpu")
+    device = "cuda" if args.cuda else "cpu"
 
     game = ConnectFour() if args.game == '0' else TicTacToe()
 
@@ -37,8 +38,8 @@ if __name__ == "__main__":
         net = net.to(device)
         nets.append((fname, net))
 
-    total_agent = {}
-    total_pairs = {}
+    total_agent: Dict[str, WinLoseDraw] = {}
+    total_pairs: Dict[Tuple[str, str], WinLoseDraw] = {}
 
     for idx1, n1 in enumerate(nets):
         for idx2, n2 in enumerate(nets):
