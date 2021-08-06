@@ -4,12 +4,18 @@ Monte-Carlo Tree Search
 import math as m
 import numpy as np
 
-from lib import model
+from lib.model import Net
 from lib.game.game import BaseGame
 
 import torch
 import torch.nn.functional as F
-from typing import Iterable, Hashable, Tuple, List
+from typing import Tuple, List, Dict, Optional
+
+StateInt = int
+VisitCount = Dict[StateInt, List[int]]
+Value = Dict[StateInt, List[float]]
+ValueAverage = Dict[StateInt, List[float]]
+Probs = Dict[StateInt, List[float]]
 
 
 class MCTS:
@@ -21,13 +27,13 @@ class MCTS:
     def __init__(self, game: BaseGame, c_puct: float = 1.0):
         self.c_puct = c_puct
         # count of visits, state_int -> [N(s, a)]
-        self.visit_count = {}
+        self.visit_count: VisitCount = {}
         # total value of the state's act, state_int -> [W(s, a)]
-        self.value = {}
+        self.value: Value = {}
         # average value of actions, state_int -> [Q(s, a)]
-        self.value_avg = {}
+        self.value_avg: ValueAverage = {}
         # prior probability of actions, state_int -> [P(s,a)]
-        self.probs = {}
+        self.probs: Probs = {}
         self.game = game
 
     def clear(self):
@@ -59,7 +65,7 @@ class MCTS:
         return probs_with_noise
 
     def _calculate_upper_bound(self, values_avg: List[float], probs: List[float],
-                               counts: List[float]) -> List[float]:
+                               counts: List[int]) -> List[float]:
         """Calculate a score for each action at the current the game state
         from average values, probabilities & counts.
 
@@ -80,19 +86,20 @@ class MCTS:
             zip(values_avg, probs, counts)
         ]
 
-    def _mask_invalid_actions(self, scores: List[float], cur_state: Hashable) -> None:
+    def _mask_invalid_actions(self, scores: List[float], cur_state: int) -> None:
         """Inplace mask invalid actions from the neural net by penalizing it with
         negative infinity scores.
 
         Args:
             scores (list of float): List of unmasked scores for each action
-            cur_state (Hashable): State of the game
+            cur_state (int): State of the game
         """
         invalid_actions = self.game.invalid_moves(cur_state)
         for invalid in invalid_actions:
             scores[invalid] = -np.inf
 
-    def find_leaf(self, state_int: Hashable, player: int) -> Tuple[float, Hashable, int, List, List[int]]:
+    def find_leaf(self, state_int: StateInt,
+                  player: int) -> Tuple[Optional[float], StateInt, int, List[StateInt], List[int]]:
         """
         Traverse the tree until the end of game or leaf node
         (state which we have not seen before)
@@ -106,11 +113,11 @@ class MCTS:
         5. list of actions taken
 
         Args:
-            state_int (Hashable): [description]
+            state_int (int): [description]
             player (int): [description]
 
         Returns:
-            Tuple[float, Hashable, int, List, List[int]]: [description]
+            Tuple[float, int, int, List, List[int]]: [description]
         """
         states = []
         actions = []
@@ -146,34 +153,34 @@ class MCTS:
 
         return value, cur_state, cur_player, states, actions
 
-    def is_leaf(self, state_int: Hashable) -> bool:
+    def is_leaf(self, state_int: StateInt) -> bool:
         """[summary]
 
         Args:
-            state_int (Hashable): [description]
+            state_int (int): [description]
 
         Returns:
             [type]: [description]
         """
         return state_int not in self.probs
 
-    def search_batch(self, count: int, batch_size: int, state_int: Hashable,
-                     player: int, net: model.Net, device: torch.device):
+    def search_batch(self, count: int, batch_size: int, state_int: StateInt,
+                     player: int, net: Net, device: str = "cpu"):
         """[summary]
 
         Args:
             count (int): [description]
             batch_size (int): [description]
-            state_int (Hashable): [description]
+            state_int (int): [description]
             player (int): [description]
-            net (model.Net): [description]
+            net (Net): [description]
             device (str, optional): [description]. Defaults to "cpu".
         """
         for _ in range(count):
             self.search_minibatch(batch_size, state_int,
                                   player, net, device)
 
-    def _create_node(self, leaf_state: Hashable, prob: float):
+    def _create_node(self, leaf_state: int, prob: List[float]):
         """[summary]
 
         Args:
@@ -186,9 +193,9 @@ class MCTS:
         self.value_avg[leaf_state] = [0.0]*action_space
         self.probs[leaf_state] = prob
 
-    def _expand_tree(self, expand_states: List[Hashable], expand_players: List[int],
+    def _expand_tree(self, expand_states: List[StateInt], expand_players: List[int],
                      expand_queue: List, backup_queue: List,
-                     net: model.Net, device: torch.device) -> None:
+                     net: Net, device: str = "cpu") -> None:
         """[summary]
 
         Args:
@@ -201,8 +208,8 @@ class MCTS:
         """
         batch_v = self.game.states_to_training_batch(
             expand_states, expand_players)
-        batch_v = torch.tensor(batch_v).to(device)
-        logits_v, values_v = net(batch_v)
+        batch_tensor = torch.tensor(batch_v).to(device)
+        logits_v, values_v = net(batch_tensor)
         probs_v = F.softmax(logits_v, dim=1)
         values = values_v.data.cpu().numpy()[:, 0]
         probs = probs_v.data.cpu().numpy()
@@ -212,7 +219,7 @@ class MCTS:
             self._create_node(leaf_state, prob)
             backup_queue.append((value, states, actions))
 
-    def _backup(self, value: float, states: List[Hashable], actions: List[int]):
+    def _backup(self, value: float, states: List[StateInt], actions: List[int]):
         """[summary]
 
         Args:
@@ -231,8 +238,8 @@ class MCTS:
                                                  self.visit_count[state_int][action])
             cur_value = -cur_value  # flip the sign after each turn
 
-    def search_minibatch(self, batch_size: int, state_int: Hashable, player: int,
-                         net: model.Net, device: torch.device):
+    def search_minibatch(self, batch_size: int, state_int: StateInt, player: int,
+                         net: Net, device: str = "cpu") -> None:
         """
         Perform several MCTS searches. PyTorch neural net is trained in batches,
         thus it is more convenient to perform the MCTS in batches as well.
@@ -271,7 +278,7 @@ class MCTS:
         for value, states, actions in backup_queue:
             self._backup(value, states, actions)
 
-    def get_policy_value(self, state_int: Hashable, tau: int = 1):
+    def get_policy_value(self, state_int: StateInt, tau: int = 1) -> Tuple[List[float], List[float]]:
         """Extract policy and action-values by the state
         :param state_int: state of the board
         :return: (probs, values)
@@ -288,8 +295,8 @@ class MCTS:
             probs = [0.0] * self.game.action_space
             probs[np.argmax(counts)] = 1.0
         else:
-            counts = [count ** (1.0 / tau) for count in counts]
-            total = sum(counts)
-            probs = [count / total for count in counts]
+            counts_adjusted = [count ** (1.0 / tau) for count in counts]
+            total = sum(counts_adjusted)
+            probs = [count / total for count in counts_adjusted]
         values = self.value_avg[state_int]
         return probs, values
