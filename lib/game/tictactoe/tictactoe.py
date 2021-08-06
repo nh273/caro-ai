@@ -250,9 +250,9 @@ class TicTacToe(BaseGame):
                     list_state[row_idx][col_idx] = str(
                         row_idx * self.board_len + col_idx)
                 elif cell == self.player_white:
-                    list_state[row_idx][col_idx] = 'X'
+                    list_state[row_idx][col_idx] = ❌
                 elif cell == self.player_black:
-                    list_state[row_idx][col_idx] = 'O'
+                    list_state[row_idx][col_idx] = ⭕
         # substitute semi-colons with pipe |
         list_str = [f'|{"|".join(row)}|' for row in list_state]
         board = '\n'.join(list_str).replace(',', '')
