@@ -7,6 +7,12 @@ import numpy as np
 
 
 class BaseGame(ABC):
+    """A two-player board game where players take turn to change the game state.
+    The game state should be represented in an immutable type for the MCTS
+    (Monte Carlo Tree Search) process.
+    The game state also needs to be converted into a form that can be fed to the
+    Neural Network.
+    """
     @property
     @abstractmethod
     def initial_state(self) -> int:
