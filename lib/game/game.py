@@ -46,10 +46,10 @@ class BaseGame(ABC):
         """[summary]
 
         Args:
-            mcts_state (Hashable): [description]
+            mcts_state (int): [description]
 
         Returns:
-            Iterable: [description]
+            List: [description]
         """
         pass
 
@@ -58,10 +58,10 @@ class BaseGame(ABC):
         """[summary]
 
         Args:
-            mcts_state (Hashable): [description]
+            mcts_state (int): [description]
 
         Returns:
-            Iterable: [description]
+            List: [description]
         """
         pass
 
@@ -70,7 +70,7 @@ class BaseGame(ABC):
         """[summary]
 
         Args:
-            state_lists (List[List]): [description]
+            state_lists (List): [description]
             who_moves_lists (List[int]): [description]
 
         Returns:
@@ -83,12 +83,12 @@ class BaseGame(ABC):
         """[summary]
 
         Args:
-            mcts_state (Hashable): [description]
+            mcts_state (int): [description]
             move (int): [description]
             player (int): [description]
 
         Returns:
-            Tuple[Hashable, bool]: [description]
+            Tuple[int, bool]: [description]
         """
         pass
 
@@ -97,9 +97,9 @@ class BaseGame(ABC):
         """[summary]
 
         Args:
-            mcts_state (Hashable): [description]
+            mcts_state (int): [description]
 
         Returns:
-            str: [description]
+            Union[str, List[str]]: [description]
         """
         pass
