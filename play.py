@@ -5,6 +5,7 @@ import argparse
 
 from lib import model, utils
 from lib.game.connect_four.connect_four import ConnectFour
+from lib.game.tictactoe.tictactoe import TicTacToe
 
 import torch
 
@@ -21,15 +22,16 @@ if __name__ == "__main__":
                         help="Count of rounds to perform for every pair")
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable CUDA")
+    parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
+                        help="The type of game being evaluated. 0: Connect4, 1: TicTacToe")
     args = parser.parse_args()
     device = torch.device("cuda" if args.cuda else "cpu")
 
-    game = ConnectFour()
-    obs_shape = (2, game.game_rows, game.game_cols)
+    game = ConnectFour() if args.game == '0' else TicTacToe()
 
     nets = []
     for fname in args.models:
-        net = model.Net(obs_shape, game.game_cols)
+        net = model.Net(game.obs_shape, game.action_space)
         net.load_state_dict(torch.load(
             fname, map_location=lambda storage, loc: storage))
         net = net.to(device)
