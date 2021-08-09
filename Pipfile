@@ -13,6 +13,12 @@ tensorboardx = "2.1"
 [dev-packages]
 torch-tb-profiler = "*"
 tensorboard = "*"
+autopep8 = "*"
+pytest = "*"
+mypy = "*"
+ipykernel = "*"
+matplotlib = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"
