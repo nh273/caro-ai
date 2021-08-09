@@ -12,9 +12,7 @@ from lib.model import Net
 from lib.mcts import MCTS
 from lib.utils import play_game
 from lib.game.game import BaseGame
-from lib.game.connect_four.connect_four import ConnectFour
-from lib.game.tictactoe.tictactoe import TicTacToe
-
+from lib.game import game_provider
 
 from tensorboardX import SummaryWriter
 
@@ -175,8 +173,7 @@ def parse_args():
     parser.add_argument("-n", "--name", required=True, help="Name of the run")
     parser.add_argument("--cuda", default=False,
                         action="store_true", help="Enable CUDA")
-    parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
-                        help="The type of game being trained. 0: Connect4, 1: TicTacToe")
+    game_provider.add_game_argument(parser)
     return parser.parse_args()
 
 
@@ -189,8 +186,7 @@ if __name__ == "__main__":
     os.makedirs(saves_path, exist_ok=True)
     writer = SummaryWriter(comment="-" + args.name)
 
-    game_type = args.game
-    game = ConnectFour() if game_type == '0' else TicTacToe()
+    game = game_provider.get_game(args)
     model_shape = game.obs_shape
 
     net = Net(input_shape=model_shape,

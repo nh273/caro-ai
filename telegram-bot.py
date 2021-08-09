@@ -14,8 +14,7 @@ import configparser
 import argparse
 
 from lib import model, mcts, utils
-from lib.game.connect_four.connect_four import ConnectFour
-from lib.game.tictactoe.tictactoe import TicTacToe
+from lib.game import game_provider
 
 MCTS_SEARCHES = 100
 MCTS_BATCH_SIZE = 5
@@ -274,8 +273,7 @@ if __name__ == "__main__":
                         help="Directory name with models to serve")
     parser.add_argument("-l", "--log", default=f'logs/{time.strftime("%Y%m%d-%H%M%S")}.log',
                         help="Log name to keep the games and leaderboard")
-    parser.add_argument("-g", "--game", required=True, choices=['0', '1'],
-                        help="The type of game being trained. 0: Connect4, 1: TicTacToe")
+    game_provider.add_game_argument(parser)
     args = parser.parse_args()
 
     conf = configparser.ConfigParser()
@@ -283,7 +281,7 @@ if __name__ == "__main__":
         log.error("Configuration file %s not found", args.config)
         sys.exit()
 
-    game = ConnectFour() if args.game == '0' else TicTacToe()
+    game = game_provider.get_game(args)
     player_bot = PlayerBot(game, args.models, args.log)
 
     updater = telegram.ext.Updater(conf['telegram']['api'])
