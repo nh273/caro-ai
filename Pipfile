@@ -16,6 +16,9 @@ tensorboard = "*"
 autopep8 = "*"
 pytest = "*"
 mypy = "*"
+ipykernel = "*"
+matplotlib = "*"
+seaborn = "*"
 
 [requires]
 python_version = "3.7"

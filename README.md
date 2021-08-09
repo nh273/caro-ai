@@ -36,11 +36,12 @@ AlphaZero is a reinforcement learning architecture that can learn to play [perfe
 More details to follow in each component.
 ## Components
 ### MCTS
-This is arguably the core of the process. For many games there are obviously more game states than it is feasible to explore, but for every game state `s` that have been explored, and for each action `a` at each game state `s`, the following data are tracked:
+This is arguably the core of AlphaZero. You can think of MCTS as AlphaZero "thinking ahead" from a given game state. MCTS is essentially conducting a game tree, i.e. a graph of game states with edges being actions that lead from one state to another. For every game state `s` that have been explored, and for each action `a` at each game state `s`, the following data are tracked:
 1. Number of times the action `a` had been taken at game state `s`: `N(s,a)`
 2. [Expected reward](https://en.wikipedia.org/wiki/Q-learning) of action `a`: `Q(s,a)`
 3. A prior probability of taking action `a`, predicted by the (currently best) neural network, given game state `s`: `p(s,a)`
 From the above (and a hyperparameter `c_puct`) we can calculate an adjusted upper confidence bound for the Q-values of each action at each game state `U(s,a)`.
+For most games there are obviously more game states than it is feasible to explore, but the above value can serve as an heuristic to choose which game states to examine.
 In `lib/mcts.py`, the values above are stored, each in one `dict` with the keys being the integer form of the game state, each state accessing a list of values corresponding to the game actions. Theoretically the game state can be any indexable type, but for this implementation the `int` type is chosen as the neural net accepts arrays of numbers as inputs and it is fairly straightforward in most cases to convert the game state from a single integer to a form that can be accepted by the neural net.
 #### State search
 For each turn of the simulation: given a state, choose the action that has highest U. Pass it to the game logic, which returns a new game state. If the new state is found, look up U in the dict. Else, add the state to a queue for node expansion later (this node expansion is done in batches to be more efficient with querying values from the Pytorch neural net)
@@ -63,4 +64,4 @@ The game also needs to update the game state after each move (which is also expe
 Finally, the game is responsible for transforming its game state into a list of inputs to train the neural network. Following the AlphaZero paper, the input is a 2-channel 2-D array, with each channel being the position of one player's tokens on the game board. The MCTS will batch game states together in a list to train the network in batches, so the game should be able to convert a list of game states to a list of network inputable arrays.
 ## Hyperparameters
 
-# Extending
+# Adding new games
