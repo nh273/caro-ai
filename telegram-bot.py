@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# This module requires python-telegram-bot
-import torch
 import os
 import sys
 import glob
@@ -14,7 +12,7 @@ import configparser
 import argparse
 
 import config as cfg
-from lib import model, mcts, utils
+from lib import utils, play_session
 from lib.game import game_provider
 
 
@@ -34,55 +32,10 @@ CONFIG_DEFAULT = "./.config/bot.ini"
 log = logging.getLogger("telegram")
 
 
-class Session:
-    def __init__(self, game, model_file, player_moves_first, player_id):
-        self.game = game
-        self.BOT_PLAYER = game.player_black
-        self.USER_PLAYER = game.player_white
-        self.model_file = model_file
-        self.model = model.Net(
-            input_shape=game.obs_shape, actions_n=game.action_space)
-        self.model.load_state_dict(torch.load(
-            model_file, map_location=lambda storage, loc: storage))
-        self.state = game.initial_state
-        self.value = None
-        self.player_moves_first = player_moves_first
-        self.player_id = player_id
-        self.moves = []
-        self.mcts_store = mcts.MCTS(game)
-
-    def move_player(self, move: int) -> bool:
-        self.moves.append(move)
-        self.state, won = self.game.move(self.state, move, self.USER_PLAYER)
-        return won
-
-    def move_bot(self) -> bool:
-        self.mcts_store.search_batch(
-            cfg.BOT_MCTS_SEARCHES, cfg.BOT_MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
-        probs, values = self.mcts_store.get_policy_value(self.state, tau=0)
-        action = np.random.choice(self.game.action_space, p=probs)
-        self.value = values[action]
-        self.moves.append(action)
-        self.state, won = self.game.move(self.state, action, self.BOT_PLAYER)
-        return won
-
-    def is_valid_move(self, move: int) -> bool:
-        return move in self.game.possible_moves(self.state)
-
-    def is_draw(self) -> bool:
-        return len(self.game.possible_moves(self.state)) == 0
-
-    def render(self) -> str:
-        board = self.game.render(self.state)
-        extra = ""
-        if self.value is not None:
-            extra = "Position evaluation: %.2f\n" % float(self.value)
-        return extra + "<pre>%s</pre>" % board
-
-
 class PlayerBot:
     def __init__(self, game, models_dir, log_file):
         self.game = game
+        self.player_id = None
         self.sessions = {}
         self.models_dir = models_dir
         self.models = self._read_models(models_dir)
@@ -120,13 +73,13 @@ class PlayerBot:
 
     def _save_log(self, session, bot_score):
         self._update_leaderboard(bot_score, os.path.basename(session.model_file),
-                                 session.player_id.split(':')[0])
+                                 self.player_id.split(':')[0])
         data = {
             "ts": time.time(),
             "time": datetime.datetime.utcnow().isoformat(),
             "bot_score": bot_score,
             "model_file": session.model_file,
-            "player_id": session.player_id,
+            "player_id": self.player_id,
             "player_moves_first": session.player_moves_first,
             "moves": session.moves,
             "state": session.state
@@ -162,11 +115,11 @@ During the game, your moves are numbers of columns to drop the disk.
 
     def command_play(self, bot, update, args):
         chat_id = update.message.chat_id
-        player_id = "%s:%s" % (
+        self.player_id = "%s:%s" % (
             update.message.from_user.username, update.message.from_user.id)
         try:
             model_id = int(args[0])
-        except ValueError:
+        except (ValueError, IndexError):
             bot.send_message(
                 chat_id=chat_id, text="Wrong argumants! Use '/play <MODEL_ID>, to start the game")
             return
@@ -182,8 +135,8 @@ During the game, your moves are numbers of columns to drop the disk.
             del self.sessions[chat_id]
 
         player_moves = random.choice([False, True])
-        session = Session(
-            self.game, self.models[model_id], player_moves, player_id)
+        session = play_session.Session(
+            self.game, self.models[model_id], player_moves)
         self.sessions[chat_id] = session
         if player_moves:
             bot.send_message(
