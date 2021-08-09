@@ -6,10 +6,13 @@ The environment is managed with [Pipenv](https://pipenv.pypa.io/en/latest/instal
 Then each time you want to load the virtual environment to your shell, simply run `pipenv shell` from the project directory.
 Alternatively you can use `pipenv run [command]` to run commands from within the Pipenv environment.
 If you ever need to remove the virtual environment, you can do so with `pipenv --rm`.
+## Choose game
+Each of the commands below can be run with a `-g` flag to specify the game you are training or playing with. `-g 0` for Connect4 and `-g 1` for TicTacToe.
 ## Training
-Train the model with `python train.py -n [any name you want for this run]`. Trained model will be saved to `saves/[run name]/[auto-generated-model-name].dat`.
+Train the model with `python train.py -g [game] -n [any name you want for this run]`. Trained model will be saved to `saves/[run name]/[auto-generated-model-name].dat`.
 Training statistics can be observed using TensorBoard. Start a session with `tensorboard --logdir .` and TensorBoard will open in browser (by default at
 [http://localhost:6006/](http://localhost:6006/)). From TensorBoard you can observe the network losses at each training steps, and the winning ratio of the challenger against the current best model. The latter graph will likely be increasing up to a point before sharply dropping as the best model is replaced by a successful-enough challenger, before increasing again as yet a new challenger gets better.
+2 trained models for each implemented game have been included for your playing pleasure at `saves/trained_tictactoe` and `saves/trained_connect4`.
 ## Human Playing Against a Trained Model
 You can interact with the bot via [Telegram](https://desktop.telegram.org/).
 On Telegram, talk to @botfather to create a new bot and obtain its API key.
@@ -19,12 +22,14 @@ Then create `.config/bot.ini` and add that API key as follow:
 api=<API KEY HERE>
 ```
 `telegram` should be in square brackets. Your API KEY can just be pasted without any brackets or quotes.
-Run Telegram bot with `python telegram-bot.py -m [directory with model files] -l [path to log file]`
-
+Run Telegram bot with `python telegram-bot.py -g [game] -m [directory with model files]`. E.g:
+ `python telegram-bot.py -g 0 -m saves/trained_connect4/`
+Create a chat in Telegram with the bot you created. Send the command `\list` to see all the models available inside your model directory, `\play [model index]` to start a game against a model in the list.
 ## Let Models Play Against Each Other
 Models can also play against one another using
-`python play.py model1_filename model2_filename ...` e.g.:
-`python play.py saves/test/best_009_02700.dat saves/test/best_008_02200.dat`
+`python play.py -g [game] model1_filename model2_filename ...` e.g.:
+`python play.py -g 0 saves/trained_connect4/best_025_10600.dat saves/test/best_026_12000.dat`
+`python play.py -g 1 saves/trained_tictactoe/best_005_00900.dat saves/test/best_004_00800.dat`
 You can also specify the number of rounds that the models will play with the argument `-r`
 The script will print a leaderboard of models with wins, losses, and draws
 # More Details
