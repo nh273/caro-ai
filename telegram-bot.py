@@ -13,11 +13,10 @@ import numpy as np
 import configparser
 import argparse
 
+import config as cfg
 from lib import model, mcts, utils
 from lib.game import game_provider
 
-MCTS_SEARCHES = 100
-MCTS_BATCH_SIZE = 5
 
 try:
     import telegram.ext
@@ -59,7 +58,7 @@ class Session:
 
     def move_bot(self) -> bool:
         self.mcts_store.search_batch(
-            MCTS_SEARCHES, MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
+            cfg.BOT_MCTS_SEARCHES, cfg.BOT_MCTS_BATCH_SIZE, self.state, self.BOT_PLAYER, self.model)
         probs, values = self.mcts_store.get_policy_value(self.state, tau=0)
         action = np.random.choice(self.game.action_space, p=probs)
         self.value = values[action]

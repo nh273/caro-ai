@@ -5,12 +5,10 @@ import argparse
 from typing import Dict, Tuple
 import torch
 
+import config as cfg
 from lib import model, utils
 from lib.game import game_provider
 
-
-MCTS_SEARCHES = 10
-MCTS_BATCH_SIZE = 8
 
 WinLoseDraw = Tuple[int, int, int]
 
@@ -46,8 +44,12 @@ if __name__ == "__main__":
             wins, losses, draws = 0, 0, 0
             ts = time.time()
             for _ in range(args.rounds):
-                r, _ = utils.play_game(game=game, mcts_stores=None, replay_buffer=None, net1=n1[1], net2=n2[1], steps_before_tau_0=0,
-                                       mcts_searches=MCTS_SEARCHES, mcts_batch_size=MCTS_BATCH_SIZE, device=device)
+                r, _ = utils.play_game(game=game, mcts_stores=None, replay_buffer=None,
+                                       net1=n1[1], net2=n2[1],
+                                       steps_before_tau_0=0,
+                                       mcts_searches=cfg.PLAY_MCTS_SEARCHES,
+                                       mcts_batch_size=cfg.PLAY_MCTS_BATCH_SIZE,
+                                       device=device)
                 if r > 0.5:
                     wins += 1
                 elif r < -0.5:

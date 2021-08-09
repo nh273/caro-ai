@@ -8,33 +8,17 @@ import argparse
 import collections
 from typing import Union
 
+import torch
+import torch.optim as optim
+import torch.nn.functional as F
+from tensorboardX import SummaryWriter
+
+import config as cfg
 from lib.model import Net
 from lib.mcts import MCTS
 from lib.utils import play_game
 from lib.game.game import BaseGame
 from lib.game import game_provider
-
-from tensorboardX import SummaryWriter
-
-import torch
-import torch.optim as optim
-import torch.nn.functional as F
-
-
-PLAY_EPISODES = 1  # 25
-MCTS_SEARCHES = 10
-MCTS_BATCH_SIZE = 8
-REPLAY_BUFFER = 5000  # 30000
-LEARNING_RATE = 0.1
-BATCH_SIZE = 256
-TRAIN_ROUNDS = 10
-MIN_REPLAY_TO_TRAIN = 2000  # 10000
-
-BEST_NET_WIN_RATIO = 0.60
-
-EVALUATE_EVERY_STEP = 100
-EVALUATION_ROUNDS = 20
-STEPS_BEFORE_TAU_0 = 10
 
 Optimizer = torch.optim.Optimizer
 
@@ -56,11 +40,12 @@ def self_play(game: BaseGame, mcts_store: MCTS, replay_buffer: Union[collections
     t = time.time()
     prev_nodes = len(mcts_store)
     game_steps = 0
-    for _ in range(PLAY_EPISODES):
+    for _ in range(cfg.PLAY_EPISODES):
         _, steps = play_game(game, mcts_store, replay_buffer,
                              best_net.target_model, best_net.target_model,
-                             steps_before_tau_0=STEPS_BEFORE_TAU_0, mcts_searches=MCTS_SEARCHES,
-                             mcts_batch_size=MCTS_BATCH_SIZE, device=device)
+                             steps_before_tau_0=cfg.STEPS_BEFORE_TAU_0,
+                             mcts_searches=cfg.MCTS_SEARCHES,
+                             mcts_batch_size=cfg.MCTS_BATCH_SIZE, device=device)
         game_steps += steps
     game_nodes = len(mcts_store) - prev_nodes
     dt = time.time() - t
@@ -90,6 +75,7 @@ def train_neural_net(game: BaseGame, replay_buffer: collections.deque, optimizer
             Board
         device (str): cpu or gpu (for PyTorch)
     """
+    TRAIN_ROUNDS = cfg.TRAIN_ROUNDS
     sum_loss = 0.0
     sum_value_loss = 0.0
     sum_policy_loss = 0.0
@@ -97,7 +83,7 @@ def train_neural_net(game: BaseGame, replay_buffer: collections.deque, optimizer
     for _ in range(TRAIN_ROUNDS):
         # PyTorch is trained in batches. We process data batches here into tensors
         # that can be fed into the neural net for training
-        batch = random.sample(replay_buffer, BATCH_SIZE)
+        batch = random.sample(replay_buffer, cfg.BATCH_SIZE)
         batch_states, batch_who_moves, batch_probs, batch_values = zip(
             *batch)
         states_v = game.states_to_training_batch(
@@ -194,9 +180,9 @@ if __name__ == "__main__":
     best_net = ptan.agent.TargetNet(net)
     print(net)
 
-    optimizer = optim.SGD(net.parameters(), lr=LEARNING_RATE, momentum=0.9)
+    optimizer = optim.SGD(net.parameters(), lr=cfg.LEARNING_RATE, momentum=0.9)
 
-    replay_buffer = collections.deque(maxlen=REPLAY_BUFFER)
+    replay_buffer = collections.deque(maxlen=cfg.REPLAY_BUFFER)
     mcts_store = MCTS(game)
     step_idx = 0
     best_idx = 0
@@ -209,7 +195,7 @@ if __name__ == "__main__":
                       best_net.target_model, tb_tracker, device)
             step_idx += 1
 
-            if len(replay_buffer) < MIN_REPLAY_TO_TRAIN:
+            if len(replay_buffer) < cfg.MIN_REPLAY_TO_TRAIN:
                 continue
 
             # Replay buffer has sufficient data. Train the net
@@ -219,10 +205,10 @@ if __name__ == "__main__":
             # evaluate net, then replace best net if performance is satisfactory
             if step_idx % EVALUATE_EVERY_STEP == 0:
                 win_ratio = evaluate(game,
-                                     net, best_net.target_model, rounds=EVALUATION_ROUNDS, device=device)
+                                     net, best_net.target_model, rounds=cfg.EVALUATION_ROUNDS, device=device)
                 print("Net evaluated, win ratio = %.2f" % win_ratio)
                 writer.add_scalar("eval_win_ratio", win_ratio, step_idx)
-                if win_ratio > BEST_NET_WIN_RATIO:
+                if win_ratio > cfg.BEST_NET_WIN_RATIO:
                     print("Net is better than cur best, sync")
                     best_net.sync()
                     best_idx += 1

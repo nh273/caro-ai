@@ -3,13 +3,13 @@ Monte-Carlo Tree Search
 """
 import math as m
 import numpy as np
-
-from lib.model import Net
-from lib.game.game import BaseGame
-
 import torch
 import torch.nn.functional as F
 from typing import Tuple, List, Dict, Optional
+
+import config as cfg
+from lib.model import Net
+from lib.game.game import BaseGame
 
 StateInt = int
 VisitCount = Dict[StateInt, List[int]]
@@ -24,8 +24,8 @@ class MCTS:
 
     """
 
-    def __init__(self, game: BaseGame, c_puct: float = 1.0):
-        self.c_puct = c_puct
+    def __init__(self, game: BaseGame):
+        self.c_puct = cfg.C_PUCT
         # count of visits, state_int -> [N(s, a)]
         self.visit_count: VisitCount = {}
         # total value of the state's act, state_int -> [W(s, a)]
@@ -51,11 +51,8 @@ class MCTS:
         Args:
             probs (list): List of probabilities of actions
         """
-        # The alpha value for dirichlet distribution (0.03)
-        # and exploration coefficient (0.25) are
-        # taken from the AlphaZero paper for Go.
-        alpha = 0.03
-        explore = 0.25
+        alpha = cfg.ALPHA
+        explore = cfg.EXPLORE
         noises = np.random.dirichlet(
             [alpha] * self.game.action_space)
         probs_with_noise = [
