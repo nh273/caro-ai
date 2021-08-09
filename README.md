@@ -8,8 +8,10 @@ Alternatively you can use `pipenv run [command]` to run commands from within the
 If you ever need to remove the virtual environment, you can do so with `pipenv --rm`.
 ## Training
 Train the model with `python train.py -n [any name you want for this run]`. Trained model will be saved to `saves/[run name]/[auto-generated-model-name].dat`.
-## Playing Against a Trained Model
-You can interact with the bot via Telegram.
+Training statistics can be observed using TensorBoard. Start a session with `tensorboard --logdir .` and TensorBoard will open in browser (by default at
+[http://localhost:6006/](http://localhost:6006/)). From TensorBoard you can observe the network losses at each training steps, and the winning ratio of the challenger against the current best model. The latter graph will likely be increasing up to a point before sharply dropping as the best model is replaced by a successful-enough challenger, before increasing again as yet a new challenger gets better.
+## Human Playing Against a Trained Model
+You can interact with the bot via [Telegram](https://desktop.telegram.org/).
 On Telegram, talk to @botfather to create a new bot and obtain its API key.
 Then create `.config/bot.ini` and add that API key as follow:
 ```
@@ -36,6 +38,7 @@ AlphaZero is a reinforcement learning architecture that can learn to play [perfe
 More details to follow in each component.
 ## Components
 ### MCTS
+`lib/mcts.py`
 This is arguably the core of AlphaZero. You can think of MCTS as AlphaZero "thinking ahead" from a given game state. MCTS is essentially conducting a game tree, i.e. a graph of game states with edges being actions that lead from one state to another. For every game state `s` that have been explored, and for each action `a` at each game state `s`, the following data are tracked:
 1. Number of times the action `a` had been taken at game state `s`: `N(s,a)`
 2. [Expected reward](https://en.wikipedia.org/wiki/Q-learning) of action `a`: `Q(s,a)`
@@ -57,11 +60,11 @@ For the MCTS tree search process, we deterministically select the action with th
 For the root node (inital game state) where there are no data to calculate yet, we generate probabilities using a [Dirichlet distribution](https://stats.stackexchange.com/questions/322831/purpose-of-dirichlet-noise-in-the-alphazero-paper).
 The value we received should always be reversed before being added to the tree nodes. After making a move, the "point-of-view" of the game is reversed (it's the other player's turn, if they won, you've lost).
 ### Model
+`lib/model.py`
 It's a neural net with 4 convolutional layers with batch normalization, using Leaky ReLU for activation, as suggested by the book. The network accepts 2D arrays of arbitrary size with 2 channels (one for each player). I have not tested a deeper network. The network outputs a policy head: array equal in length to the action space, which we then softmax to get the probabilities, and a value head: single estimate of the reward at that game state.
 ### Game
-The logic of each game. Check `lib/game/game.py` for an expected interface. The game needs to be able to represent the game state as an integer for the MCTS. The simplest way of doing this is probably the implementation of TicTacToe: use one digit for each player's token, and one for empty squares. Serialize the game board into a sequence of single digits.
+The logic of each game. Check `lib/game/game.py` for the expected interface. The game needs to be able to represent the game state as an integer for the MCTS. The simplest way of doing this is probably the implementation of TicTacToe: use one digit for each player's token, and one for empty squares. Serialize the game board into a sequence of single digits.
 The game also needs to update the game state after each move (which is also expected as a single integer), determine if the move led to a final outcome, get a list of legal and illegal moves given the game state.
 Finally, the game is responsible for transforming its game state into a list of inputs to train the neural network. Following the AlphaZero paper, the input is a 2-channel 2-D array, with each channel being the position of one player's tokens on the game board. The MCTS will batch game states together in a list to train the network in batches, so the game should be able to convert a list of game states to a list of network inputable arrays.
+To add new games, simply add another module in the `lib/game` folder and implement the `BaseGame`interface defined in `lib/game/game.py`.
 ## Hyperparameters
-
-# Adding new games
