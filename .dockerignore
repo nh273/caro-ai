@@ -1,0 +1,17 @@
+# Caches and compiled
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache
+.pytest_cache
+.Python
+# env and configs
+env
+.config
+.cache
+# Logs and TfBoard
+runs
+logs
+*.log
+.git
