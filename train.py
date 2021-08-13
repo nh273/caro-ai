@@ -2,7 +2,6 @@
 import os
 import sys
 import time
-import ptan
 import random
 import argparse
 import collections
@@ -14,9 +13,9 @@ import torch.nn.functional as F
 from tensorboardX import SummaryWriter
 
 import config as cfg
-from lib.model import Net
+from lib.model import Net, NetWrapper
 from lib.mcts import MCTS
-from lib.utils import play_game
+from lib.utils import play_game, TBMeanTracker
 from lib.game.game import BaseGame
 from lib.game import game_provider
 
@@ -177,7 +176,7 @@ if __name__ == "__main__":
 
     net = Net(input_shape=model_shape,
               actions_n=game.action_space).to(device)
-    best_net = ptan.agent.TargetNet(net)
+    best_net = NetWrapper(net)
     print(net)
 
     optimizer = optim.SGD(net.parameters(), lr=cfg.LEARNING_RATE, momentum=0.9)
@@ -187,7 +186,7 @@ if __name__ == "__main__":
     step_idx = 0
     best_idx = 0
 
-    with ptan.common.utils.TBMeanTracker(writer, batch_size=10) as tb_tracker:
+    with TBMeanTracker(writer, batch_size=10) as tb_tracker:
         # Theoretically training loop can continue forever
         # to produce better & better agents
         while True:
