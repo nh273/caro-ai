@@ -1,10 +1,7 @@
-FROM python:3.7
+FROM python:3.7.10
 
-RUN pip install pipenv
+COPY requirements.txt ./
 
-COPY Pipfile ./
-COPY Pipfile.lock ./
-
-RUN pipenv install
-
+RUN pip install -r requirements.txt
+RUN pwd
 COPY . ./
