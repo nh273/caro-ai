@@ -6,6 +6,8 @@ The environment is managed with [Pipenv](https://pipenv.pypa.io/en/latest/instal
 Then each time you want to load the virtual environment to your shell, simply run `pipenv shell` from the project directory.
 Alternatively you can use `pipenv run [command]` to run commands from within the Pipenv environment.
 If you ever need to remove the virtual environment, you can do so with `pipenv --rm`.
+## Docker image
+If you would rather not mess with Pipenv and other icky environment stuffs, pull a Docker image with `docker pull nh273/alpha-zero:latest`. Start a container with that image from the Docker app, then you can run any of the commands below with `docker exec -it [container name] [command]`
 ## Choose game
 Each of the commands below can be run with a `-g` flag to specify the game you are training or playing with. `-g 0` for Connect4 and `-g 1` for TicTacToe.
 ## Training
@@ -28,8 +30,8 @@ Create a chat in Telegram with the bot you created. Send the command `\list` to 
 ## Let Models Play Against Each Other
 Models can also play against one another using
 `python play.py -g [game] model1_filename model2_filename ...` e.g.:
-`python play.py -g 0 saves/trained_connect4/best_025_10600.dat saves/test/best_026_12000.dat`
-`python play.py -g 1 saves/trained_tictactoe/best_005_00900.dat saves/test/best_004_00800.dat`
+`python play.py -g 0 saves/trained_connect4/best_025_10600.dat saves/trained_connect4/best_026_12000.dat`
+`python play.py -g 1 saves/trained_tictactoe/best_005_00900.dat saves/trained_tictactoe/best_004_00800.dat`
 You can also specify the number of rounds that the models will play with the argument `-r`
 The script will print a leaderboard of models with wins, losses, and draws
 # More Details
