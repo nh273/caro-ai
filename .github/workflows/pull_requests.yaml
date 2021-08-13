@@ -33,4 +33,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Test with pytest
-        run: pipenv run pytest .
+        run: pytest .
