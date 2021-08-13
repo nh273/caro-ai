@@ -4,10 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-torch = "1.7.0"
+torch = "==1.7.0"
 python-telegram-bot = "==12.4"
 numpy = "1.19.2"
-ptan = "0.7"
 tensorboardx = "2.1"
 
 [dev-packages]
