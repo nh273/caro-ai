@@ -202,7 +202,7 @@ if __name__ == "__main__":
                              optimizer, tb_tracker, device)
 
             # evaluate net, then replace best net if performance is satisfactory
-            if step_idx % EVALUATE_EVERY_STEP == 0:
+            if step_idx % cfg.EVALUATE_EVERY_STEP == 0:
                 win_ratio = evaluate(game,
                                      net, best_net.target_model, rounds=cfg.EVALUATION_ROUNDS, device=device)
                 print("Net evaluated, win ratio = %.2f" % win_ratio)
