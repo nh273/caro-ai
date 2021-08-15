@@ -1,7 +1,8 @@
 FROM python:3.7.10
 
-COPY requirements.txt ./
+COPY Pipfile ./
+COPY Pipfile.lock ./
 
-RUN pip install -r requirements.txt
-RUN pwd
+RUN pip install pipenv
+RUN pipenv install --system --deploy --ignore-pipfile
 COPY . ./
