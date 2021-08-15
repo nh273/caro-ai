@@ -27,6 +27,7 @@ api=<API KEY HERE>
 Run Telegram bot with `python telegram-bot.py -g [game] -m [directory with model files]`. E.g:
  `python telegram-bot.py -g 0 -m saves/trained_connect4/`
 Create a chat in Telegram with the bot you created. Send the command `\list` to see all the models available inside your model directory, `\play [model index]` to start a game against a model in the list.
+If you are using the Docker image, you will need to copy the `bot.ini` file into the container before running the bot. You can do so using `docker cp [local/config/file] [container-name]:[container/config/directory]`
 ## Let Models Play Against Each Other
 Models can also play against one another using
 `python play.py -g [game] model1_filename model2_filename ...` e.g.:
