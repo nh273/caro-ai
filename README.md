@@ -27,6 +27,7 @@ api=<API KEY HERE>
 Run Telegram bot with `python telegram-bot.py -g [game] -m [directory with model files]`. E.g:
  `python telegram-bot.py -g 0 -m saves/trained_connect4/`
 Create a chat in Telegram with the bot you created. Send the command `\list` to see all the models available inside your model directory, `\play [model index]` to start a game against a model in the list.
+If you are using the Docker image, you will need to copy the `bot.ini` file into the container before running the bot. You can do so using `docker cp [local/config/file] [container-name]:[container/config/directory]`
 ## Let Models Play Against Each Other
 Models can also play against one another using
 `python play.py -g [game] model1_filename model2_filename ...` e.g.:
@@ -76,3 +77,12 @@ Finally, the game is responsible for transforming its game state into a list of 
 To add new games, simply add another module in the `lib/game` folder and implement the `BaseGame`interface defined in `lib/game/game.py`. A catalogue of available games is kept in `lib/game/game_provider.py`. Modify this to provide your game for the train, play and telegram-bot scripts.
 ## Hyperparameters
 All hyperparameters can be found in `config.py`. Values are from the AlphaZero paper for Go, unless otherwise stated, except for MCTS_SEARCHES and MCTS_BATCH_SIZE, which are implementation quirks for PyTorch from the book Deep Reinforcement Learning Hands-on. I have not experimented with tuning these hyperparameters, but looking to do so in the near future.
+# DevOps
+## Github Actions
+There are 2 main Github Actions workflows:
+1. Upon opened PR:
+   1. A Docker image tagged with the PR number will be built and pushed to Docker image repo on Dockerhub
+   2. That same image will be used to run pytests on the PR
+2. Upon pushing to `master` (incl. merged PRs): a Docker image with tag `latest` will be built & pushed to Docker image repo.
+## Container
+Docker image's Python environment is also maintained using pipenv, but the `--system` flag installs packages to the container's system Python instead of spawning a virtual environment.
